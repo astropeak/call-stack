@@ -16,6 +16,7 @@ sub {
 }
 sub print_call_stack {
     my $i = 2;
+    my $objs = {};
     my @rst;
     my ($package, $filename, $line, $subroutine, $hasargs,
         $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i++);

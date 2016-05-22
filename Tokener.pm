@@ -10,7 +10,7 @@ sub new {
     my @a = _token($file);
     # $self->prop(file, $file);
     $self->prop(token, \@a);
-    $self->prop(idx, 2);
+    $self->prop(idx, 0);
     return $self;
 }
 
@@ -65,7 +65,7 @@ sub _token {
 
         # all other things
         $t=$fciter->get();
-        # $current_other.=$t unless $t=~/\n/;
+        $current_other.=$t unless $t=~/\n/;
         # $current_other.=$t;
 
         last if ($t eq '');
