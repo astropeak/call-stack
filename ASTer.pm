@@ -10,7 +10,7 @@ sub new {
     # prop=>$spec->{prop}});
 
     $self->prop(token_iter, $token_iter);
-    $self->prop(data, "ROOT");
+    $self->prop(data, {type=>'ROOT', value=>'None'});
 
     bless $self, $class;
     return $self;
@@ -65,8 +65,9 @@ sub display {
     $self->traverse({prefunc=>
                          sub{
                              my $para = shift;
-                             my $data = $para->prop(data);
-                             print $data."\n";
+                             my $data = $para->{data};
+                             my $depth = $para->{depth};
+                             print ' 'x($depth*4).'type: '.$data->{type}.', '.'value: '.$data->{value}."\n";
                      }});
 }
 
