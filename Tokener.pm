@@ -85,6 +85,17 @@ sub _token {
             next;
         }
 
+        # match a regexp
+        $t=get_regexp($fciter);
+        if ($t ne '') {
+            if ($current_other ne '') {
+                push @token, {type=>other, value=>$current_other};
+                $current_other='';
+            }
+            push @token, {type=>'regexp', value=>$t};
+            next;
+        }
+
         # all other things
         $t=$fciter->get();
         # $current_other.=$t unless $t=~/\n/;
@@ -111,7 +122,7 @@ sub get_string {
 
         if ($c eq $starter) {
             return $result.$c;
-        } elsif ($c eq '\\') {
+        } elsif ($c eq "\\") {
             $result.=$c.$fciter->get();
         } else {
             $result.=$c;
@@ -132,6 +143,37 @@ sub get_comment {
         last if $c eq '';
         $result.=$c;
         last if $c eq "\n";
+    }
+    return $result;
+}
+
+sub get_regexp {
+    my $fciter=shift;
+    my $result=$fciter->get('m/|s/|qr/');
+    if ($result eq '') {
+        return '';
+    }
+
+    print ":$result:\n";
+
+    my $wanted_end = 1;
+    $wanted_end = 2 if $result eq 's/';
+
+    my $matched_end=0;
+    while (1){
+        my $c=$fciter->get();
+        die "Regexp can't be matched" if $c eq '';
+
+        $result.=$c;
+        if ($c eq '/') {
+            ++$matched_end;
+            if ($wanted_end == $matched_end) {
+                $result.=$fciter->get('\w*');
+                return $result;
+            }
+        } elsif ($c eq "\\") {
+            $result.=$fciter->get();
+        }
     }
     return $result;
 }

@@ -10,6 +10,10 @@ use Scalar::Util qw(reftype);
 
 my $dbg_current_level= 4;
 
+my $a = qr/\w*/abc;
+my $b="AAAA";
+"AAAA" =~ s/A/B/m;
+$b = "CCCC" if $b =~m/BB/m;
 my $objs = {};
 sub{
     print "FFFFF";

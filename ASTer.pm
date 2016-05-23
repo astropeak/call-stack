@@ -29,6 +29,7 @@ sub build {
 
         if ($token->{type} eq 'other' ||
             $token->{type} eq 'string' ||
+            $token->{type} eq 'regexp' ||
             $token->{type} eq 'comment') {
             $current_root->add_child(Aspk::Tree->new({data=>$token}));
             next;
