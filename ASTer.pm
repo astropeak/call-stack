@@ -10,7 +10,7 @@ sub new {
     # prop=>$spec->{prop}});
 
     $self->prop(token_iter, $token_iter);
-    $self->prop(data, {type=>'ROOT', value=>'None'});
+    $self->prop(data, {type=>'ROOT', value=>''});
 
     bless $self, $class;
     return $self;

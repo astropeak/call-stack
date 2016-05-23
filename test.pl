@@ -11,7 +11,7 @@ use Scalar::Util qw(reftype);
 my $dbg_current_level= 4;
 
 my $objs = {};
-sub {
+sub{
     print "FFFFF";
 }
 sub print_call_stack {

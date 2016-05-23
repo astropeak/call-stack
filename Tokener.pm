@@ -41,7 +41,7 @@ sub _token {
     my @token, $current_other, $t;
     while (1) {
         # match a subname
-        $t=$fciter->get('sub\s+\w*');
+        $t=$fciter->get('sub\s+\w*\s*');
         # dbgm $t;
         if ($t ne '') {
             if ($current_other ne '') {
@@ -65,8 +65,8 @@ sub _token {
 
         # all other things
         $t=$fciter->get();
-        $current_other.=$t unless $t=~/\n/;
-        # $current_other.=$t;
+        # $current_other.=$t unless $t=~/\n/;
+        $current_other.=$t;
 
         last if ($t eq '');
     };
