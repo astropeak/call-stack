@@ -63,6 +63,17 @@ sub _token {
             next;
         }
 
+        # match a string
+        $t=get_string($fciter);
+        if ($t ne '') {
+            if ($current_other ne '') {
+                push @token, {type=>other, value=>$current_other};
+                $current_other='';
+            }
+            push @token, {type=>'string', value=>$t};
+            next;
+        }
+
         # all other things
         $t=$fciter->get();
         # $current_other.=$t unless $t=~/\n/;
@@ -72,6 +83,30 @@ sub _token {
     };
 
     return @token;
+}
+
+
+sub get_string {
+    my $fciter=shift;
+    my $starter=$fciter->get('\'|"');
+    if ($starter eq '') {
+        return '';
+    }
+
+    my $result = $starter;
+    while (1){
+        my $c=$fciter->get();
+        die "String can't be matched" if $c eq '';
+
+        if ($c eq $starter) {
+            return $result.$c;
+        } elsif ($c eq '\\') {
+            $result.=$c.$fciter->get();
+        } else {
+            $result.=$c;
+        }
+    }
+    return $result;
 }
 
 1;

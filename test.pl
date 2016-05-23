@@ -13,6 +13,9 @@ my $dbg_current_level= 4;
 my $objs = {};
 sub{
     print "FFFFF";
+    my $str="12\"3's\
+aa\n";
+    my $str1='aa sub hah {ab;}b"cc\n"\t\x';
 }
 sub print_call_stack {
     my $i = 2;

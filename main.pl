@@ -23,7 +23,7 @@ $aster->traverse({postfunc=>
                           }
                   }});
 
-# $aster->display();
+$aster->display();
 open my $fh, '>', "add_trace_$file" or die "Can't open file";
 $aster->traverse({prefunc=>
                       sub{

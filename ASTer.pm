@@ -27,7 +27,8 @@ sub build {
         last unless defined $token;
         # dbgm $token;
 
-        if ($token->{type} eq 'other') {
+        if ($token->{type} eq 'other' ||
+            $token->{type} eq 'string') {
             $current_root->add_child(Aspk::Tree->new({data=>$token}));
             next;
         }
