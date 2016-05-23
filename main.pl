@@ -3,6 +3,7 @@
 use Tokener;
 use ASTer;
 use Aspk::Debug;
+use File::Basename;
 
 my $file = @ARGV[0];
 die "Usage: perl main.pl FILE_NAME\n" unless defined $file;
@@ -40,7 +41,7 @@ $aster->traverse({postfunc=>
 $aster->display();
 
 # write to file
-open my $fh, '>', "add_trace_$file" or die "Can't open file";
+open my $fh, '>', "add_trace_".basename($file) or die "Can't open file";
 $aster->traverse({prefunc=>
                       sub{
                           my $para = shift;
