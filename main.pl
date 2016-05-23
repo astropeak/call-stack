@@ -19,7 +19,9 @@ $aster->traverse({postfunc=>
                           my $node = $para->{node};
                           if ($data->{type} eq 'subname') {
                               $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"\nprint 'Enter ".$data->{value}."'".'."\n";'}}), 1);
-                              # $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"print 'Exit ".$data->{value}."'".'."\n";'."\n"}}), -1);
+                              $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"print 'Exit ".$data->{value}."'".'."\n";'."\n"}}), -1);
+
+                              # add before all return
                               my @new_children;
                               foreach (@{$node->prop(children)}) {
                                   my $d = $_->prop(data);
@@ -29,7 +31,6 @@ $aster->traverse({postfunc=>
 
                                   push @new_children, $_;
                               }
-
                               $node->prop(children, \@new_children);
                           }
                   }});
