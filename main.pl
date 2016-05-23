@@ -36,7 +36,7 @@ $aster->traverse({postfunc=>
                           }
 
                           if ($data->{type} eq 'subname') {
-                              $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"\nprint '".header($file, $data->{row})." Enter ".$data->{value}."'".'."\n";'}}), 1);
+                              $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"\nmy \$____idx____=0;print '".header($file, $data->{row})." Enter ".$data->{value}.", Args: '".'.(join ", ", map {$____idx____++; my $a = "[$____idx____] $_"; if (length($a)>18) {substr($a, 18, 999999,"...");};$a;} @_)'.'."\n";'}}), 1);
                               $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"print '".header($file, $node->prop(children)->[-1]->prop(data)->{row})." Exit ".$data->{value}."'".'."\n";'."\n"}}), -1);
 
                               # add before all return
