@@ -28,7 +28,8 @@ sub build {
         # dbgm $token;
 
         if ($token->{type} eq 'other' ||
-            $token->{type} eq 'string') {
+            $token->{type} eq 'string' ||
+            $token->{type} eq 'comment') {
             $current_root->add_child(Aspk::Tree->new({data=>$token}));
             next;
         }

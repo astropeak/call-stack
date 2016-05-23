@@ -74,6 +74,17 @@ sub _token {
             next;
         }
 
+        # match a comment
+        $t=get_comment($fciter);
+        if ($t ne '') {
+            if ($current_other ne '') {
+                push @token, {type=>other, value=>$current_other};
+                $current_other='';
+            }
+            push @token, {type=>'comment', value=>$t};
+            next;
+        }
+
         # all other things
         $t=$fciter->get();
         # $current_other.=$t unless $t=~/\n/;
@@ -105,6 +116,22 @@ sub get_string {
         } else {
             $result.=$c;
         }
+    }
+    return $result;
+}
+
+sub get_comment {
+    my $fciter=shift;
+    my $result=$fciter->get('#');
+    if ($result eq '') {
+        return '';
+    }
+
+    while (1){
+        my $c=$fciter->get();
+        last if $c eq '';
+        $result.=$c;
+        last if $c eq "\n";
     }
     return $result;
 }

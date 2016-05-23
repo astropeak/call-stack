@@ -26,11 +26,15 @@ sub print_call_stack {
 
     sub inline_sub{
         print "I am a inline sub";
+        return 1;
     }
-
+    # a comment
     $filename = my_basename($filename, 2);
+    if ($filename) {
+        return 2;
+    }
     unshift @rst, [$filename, $line, $subroutine];
-    while ($subroutine ne "") {
+    while ($subroutine ne "") { #another { } comment sub aaa { }.
         ($package, $filename, $line, $subroutine, $hasargs,
          $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i++);
 
