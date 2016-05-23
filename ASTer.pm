@@ -54,6 +54,8 @@ sub build {
                         $current_left_brace_count = $current_root->prop(current_left_brace_count);
                     }
                 }
+            } else {
+                $current_root->add_child(Aspk::Tree->new({data=>$token}));
             }
             next;
         }
