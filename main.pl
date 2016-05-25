@@ -24,20 +24,42 @@ $aster->traverse({prefunc=>
                   }
                  });
 
+sub header {
+    my ($file, $row) = @_;
+    return "[".basename($file).":$row]";
+}
+sub format_arg {
+    my $____idx____=0;
+    join ", ", map {\$____idx____++;
+                    my $a = "[$____idx____] $_";
+                    if (length($a)>18) {
+                        substr($a, 18, 999999,"...");
+                    };
+                    $a;} @_;
+}
+sub enter_trace {
+    my $file=shift;
+    my $row=shift;
+    my $subname=shift;
+    print header($file, $row)."Enter $subname. Args: ".main::format_arg(@_)."\n";
+}
+
 # add enter and exit trace
 $aster->traverse({postfunc=>
                       sub{
                           my $para = shift;
                           my $data = $para->{data};
                           my $node = $para->{node};
-                          sub header {
-                              my ($file, $row) = @_;
-                              return "[".basename($file).":$row]";
-                          }
-
                           if ($data->{type} eq 'subname') {
-                              $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"\nmy \$____idx____=0;print '".header($file, $data->{row})." Enter ".$data->{value}.", Args: '".'.(join ", ", map {$____idx____++; my $a = "[$____idx____] $_"; if (length($a)>18) {substr($a, 18, 999999,"...");};$a;} @_)'.'."\n";'}}), 1);
-                              $node->add_child(Aspk::Tree->new({data=>{type=>'other',value=>"print '".header($file, $node->prop(children)->[-1]->prop(data)->{row})." Exit ".$data->{value}."'".'."\n";'."\n"}}), -1);
+                              $node->add_child(Aspk::Tree->new({data=>{
+                                  type=>'other',
+                                  # value=>qq{print "${\header($file, $data->{row})}. Enter $data->{value}. Args: ".main::format_arg(\@_)."\n";}
+                                  value=>"\n main::enter_trace('$file','$data->{row}','$data->{value}', \@_);"
+                                                                }}), 1);
+                              $node->add_child(Aspk::Tree->new({data=>{
+                                  type=>'other',
+                                  value=>"print '".header($file, $node->prop(children)->[-1]->prop(data)->{row})." Exit ".$data->{value}."'".'."\n";'."\n"
+                                                                }}), -1);
 
                               # add before all return
                               my @new_children;
