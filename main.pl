@@ -41,7 +41,14 @@ sub enter_trace {
     my $file=shift;
     my $row=shift;
     my $subname=shift;
-    print header($file, $row)."Enter $subname. Args: ".main::format_arg(@_)."\n";
+    qq{print "${\header($file, $row)} Enter $subname. Args: " . main::format_arg(\@_)."\n"; };
+}
+
+sub exit_trace {
+    my $file=shift;
+    my $row=shift;
+    my $subname=shift;
+    qq{print "${\header($file, $row)} Exit $subname.\n"; };
 }
 
 # add enter and exit trace
@@ -53,12 +60,11 @@ $aster->traverse({postfunc=>
                           if ($data->{type} eq 'subname') {
                               $node->add_child(Aspk::Tree->new({data=>{
                                   type=>'other',
-                                  # value=>qq{print "${\header($file, $data->{row})}. Enter $data->{value}. Args: ".main::format_arg(\@_)."\n";}
-                                  value=>"\n main::enter_trace('$file','$data->{row}','$data->{value}', \@_);"
+                                  value=>enter_trace($file,$data->{row},$data->{value})
                                                                 }}), 1);
                               $node->add_child(Aspk::Tree->new({data=>{
                                   type=>'other',
-                                  value=>"print '".header($file, $node->prop(children)->[-1]->prop(data)->{row})." Exit ".$data->{value}."'".'."\n";'."\n"
+                                  value=>exit_trace($file, $node->prop(children)->[-1]->prop(data)->{row}, $data->{value})
                                                                 }}), -1);
 
                               # add before all return
@@ -66,9 +72,12 @@ $aster->traverse({postfunc=>
                               foreach (@{$node->prop(children)}) {
                                   my $d = $_->prop(data);
                                   if ($d->{type} eq 'literal' && $d->{value} eq 'return') {
-                                      push @new_children, Aspk::Tree->new({data=>{type=>'other',value=>"print '".header($file, $_->prop(data)->{row})." Exit ".$data->{value}."'".'."\n";'."\n"}});
+                                      push @new_children,
+                                      Aspk::Tree->new({data=>{
+                                          type=>'other',
+                                          value=>exit_trace($file, $_->prop(data)->{row}, $data->{value})
+                                                       }});
                                   }
-
                                   push @new_children, $_;
                               }
                               $node->prop(children, \@new_children);
