@@ -30,7 +30,7 @@ sub print_call_stack {
 
     sub inline_sub{
         print "I am a inline sub";
-        return 1;
+        return $a+$b+$c*123;
     }
     # a comment
     $filename = my_basename($filename, 2);
