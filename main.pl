@@ -48,7 +48,13 @@ sub exit_trace {
     my $file=shift;
     my $row=shift;
     my $subname=shift;
-    qq{print "${\header($file, $row)} Exit $subname.\n"; };
+    my $exp=shift;
+    if (defined $exp){
+        $exp="\".($exp).\"";
+    } else {
+        $exp='none';
+    }
+    qq{print "${\header($file, $row)} Exit $subname. Exit value: $exp\n"; };
 }
 
 # add enter and exit trace
@@ -69,16 +75,23 @@ $aster->traverse({postfunc=>
 
                               # add before all return
                               my @new_children;
+                              my $i=0;
                               foreach (@{$node->prop(children)}) {
                                   my $d = $_->prop(data);
                                   if ($d->{type} eq 'literal' && $d->{value} eq 'return') {
+                                      my $exp_node=$node->prop(children)->[$i+1];
+                                      my $exp;
+                                      if ($exp_node->prop(data)->{value} ne ';') {
+                                          $exp= $exp_node->prop(data)->{value};
+                                      }
                                       push @new_children,
                                       Aspk::Tree->new({data=>{
                                           type=>'other',
-                                          value=>exit_trace($file, $_->prop(data)->{row}, $data->{value})
+                                          value=>exit_trace($file, $_->prop(data)->{row}, $data->{value}, $exp)
                                                        }});
                                   }
                                   push @new_children, $_;
+                                  ++$i;
                               }
                               $node->prop(children, \@new_children);
                           }
