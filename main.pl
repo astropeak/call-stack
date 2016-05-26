@@ -55,6 +55,7 @@ sub exit_trace {
 # transform return statement
 sub transfrom_return_exp {
     my $return_exp=shift;
+    my $row=$return_exp->prop(data)->{row};
     my @children=@{$return_exp->prop(children)};
     # my $exp=$children[1];
     my $node=Aspk::Tree->new({data=>{type=>'return_exp_transformed'}});
@@ -64,7 +65,7 @@ sub transfrom_return_exp {
     $node->add_child($children[1]);
     Aspk::Tree->new({data=>{type=>'other', value=>');
 '}, parent=>$node});
-    my $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>''}, parent=>$node});
+    my $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>'', row=>$row}, parent=>$node});
     $node_1->add_child($children[0]);
     my $exp=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$node_1});
     Aspk::Tree->new({data=>{type=>'other', value=>' @___a___'}, parent=>$exp});
@@ -78,7 +79,7 @@ sub transfrom_return_exp {
     $node->add_child($children[1]);
     Aspk::Tree->new({data=>{type=>'other', value=>');
 '}, parent=>$node});
-    $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>''}, parent=>$node});
+    $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>'', row=>$row}, parent=>$node});
     $node_1->add_child($children[0]);
     my $exp=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$node_1});
     Aspk::Tree->new({data=>{type=>'other', value=>' $___a___'}, parent=>$exp});
