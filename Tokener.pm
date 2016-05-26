@@ -21,6 +21,16 @@ sub get {
     return $self->prop(token)->[$i];
 }
 
+sub back {
+    my ($self, $count) = @_;
+    $count||=1;
+    my $i = $self->prop(idx);
+    $i-=$count;
+    $i=0 if $i<0;
+    $self->prop(idx, $i);
+    return $self;
+}
+
 # Get or set a property of the object
 sub prop {
     my ($self, $name, $value) = @_;
