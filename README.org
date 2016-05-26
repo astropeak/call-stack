@@ -300,47 +300,13 @@
      #+RESULTS:
      : [1] AAAAAAAAAAAAAA..., [2] 234, [3] BBBBB, [4] ARRAY(0x9212a3...
     
-**** TODO print return value
+**** DONE print return value
+     CLOSED: [2016-05-26 Thu 13:27]
+     - State "DONE"       from "TODO"       [2016-05-26 Thu 13:27]
      - State "TODO"       from ""           [2016-05-23 Mon 22:08]
      return value is not that easy. we should get the remaining part of return statement, and extract it, and assign it to a variable, and print that variable and return variable. But, what type of variable should it be? It can be scalar or list, but we don't know at runtime. So this seems impossiable?
 
      I think maybe I can make use of ~*name~ to save the return value. =>This doen't work.
-
-     Way:
-     Because return value can only be a scalar or a list, so it is easy.
-     Orig:
-     #+begin_src perl :results output
-     sub aaa {
-         my ($a, $b, $c)=(1,2,3);
-         return $a+$b+$c;
-     }
-     print aaa();
-     #+end_src
-
-     #+RESULTS:
-     : 6
-
-     Translated to :
-     #+begin_src perl :results output
-     sub aaa {
-         my ($a, $b, $c)=(1,2,3);
-         if (wantarray()){
-             print "list wanted\n";
-             my @a= ($a+$b+$c);
-             return @a;
-         } else {
-             print "scalar wanted\n";
-             my $aa=($a+$b+$c);
-             return $aa;
-         }
-     }
-     $a = aaa();
-     print $a;
-     #+end_src
-
-     #+RESULTS:
-     : scalar wanted
-     : 6
 
      implement:
      先实现简单情况：
@@ -352,3 +318,92 @@
      1. 对于每个return结点，下一个结点为返回值或;结点。
         如果下一个结点不为;结点，则将这个结点的字符串加到exit trace中。 用括号包起来。
         
+**** DONE transform return statement
+     CLOSED: [2016-05-26 Thu 14:41]
+     - State "DONE"       from "TODO"       [2016-05-26 Thu 14:41]
+     - State "TODO"       from ""           [2016-05-26 Thu 13:27]
+***** Doing below transformation
+      Orig:
+      #+begin_src perl :results output
+      sub aaa {
+          my ($a, $b, $c)=(1,2,3);
+          return $a+$b+$c;
+      }
+      print aaa();
+      #+end_src
+      
+      #+RESULTS:
+      : 6
+      
+      to :
+      #+begin_src perl :results output
+      sub aaa {
+          my ($a, $b, $c)=(1,2,3);
+          if (wantarray()){
+              my @a= ($a+$b+$c);
+              return @a;
+          } else {
+              my $aa=($a+$b+$c);
+              return $aa;
+          }
+      }
+      $a = aaa();
+      print $a;
+      #+end_src
+      
+      #+RESULTS:
+      : scalar wanted
+      : 6
+      
+      Therory:
+      Because return value can only be a scalar or a list, so the two is equivalent.
+***** steps
+      1. input
+         a 'return_exp' AST tree node.
+      2. output
+         a transformed 'return_exp' AST tree node. type will be 'return_exp_transformed';
+
+      Implements:
+      1. create a new node $node, with type 'return_exp_transformed'.
+      2. add a child to $node, type:other, value: 'if (wantarray()){\n my @___a___=('
+      3. add second child of 'return_exp' to $node as child.
+      4. add a child to $node, type:other, value: ');\n'
+      5. create a new 'return_exp' $node_1, and add it to $node as a child.
+      6. add child: literal:return to $node_1
+      7. add child: new 'exp', which content other:'@___a___', to $node_1
+      8. add child: literal:';' to $node_1
+
+      9. add a child to $node, type:other, value: '\n} else{\n my $___a___=('
+      10. add second child of 'return_exp' to $node as child.
+      11. add a child to $node, type:other, value: ');\n'
+      12. create a new 'return_exp' $node_1, and add it to $node as a child.
+      13. add child: literal:return to $node_1
+      14. add child: new 'exp', which content other:'$___a___', to $node_1
+      15. add child: literal:';' to $node_1
+      16. add a child to $node, type:other, value: '\n}'
+
+      Code:
+      #+begin_src perl :results output
+      sub transfrom_return_exp {
+          my $return_exp=shift;
+          my @children=@{$return_exp->prop(children)};
+          # my $exp=$children[1];
+          my $node=Aspk::Tree->new({data=>{type=>'return_exp_transformed'}});
+          Aspk::Tree->new({data=>{type=>'other', value=>'if (wantarray()){\n my @___a___=('},
+                                  parent=>$node});
+          $node->add_child($children[1]);
+          Aspk::Tree->new({data=>{type=>'other', value=>');\n'}, parent=>$node});
+          my $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>''}, parent=>$node});
+          $node_1->add_child($children[0]);
+          my $exp=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$node_1});
+          Aspk::Tree->new({data=>{type=>'other', value=>'@___a___'}, parent=>$node_1});
+          Aspk::Tree->new({data=>{type=>'literal', value=>';'}, parent=>$node_1});
+      
+          return $node;
+      }
+      #+end_src
+
+
+
+
+     
