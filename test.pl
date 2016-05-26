@@ -44,6 +44,9 @@ sub print_call_stack {
 
         $filename = my_basename($filename, 2);
         unshift @rst, [$filename, $line, $subroutine];
+        return;
     }
+
+    return $self->get->{"aaaa", {a=>'BC', {8, 99}},"DD"};
 }
 

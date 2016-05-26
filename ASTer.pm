@@ -56,13 +56,65 @@ sub build {
                         $current_left_brace_count = $current_root->prop(current_left_brace_count);
                     }
                 }
-            } else {
+            } elsif ($token->{value} eq 'return') {
+                $token_iter->back();
+                my $rst=parse_return_exp($token_iter);
+                $current_root->add_child($rst);
+            }else {
                 $current_root->add_child(Aspk::Tree->new({data=>$token}));
             }
             next;
         }
         die "Cant be here";
     }
+}
+
+sub parse_return_exp(){
+    my $token_iter = shift;
+    my $node = Aspk::Tree->new({data=>{type=>'return_exp',value=>''}});
+    my $token = $token_iter->get(); #this is literal 'return'
+    $node->add_child(Aspk::Tree->new({data=>$token}));
+    my $exp=Aspk::Tree->new({data=>{type=>'exp',value=>''}});
+    $node->add_child($exp);
+    while (1) {
+        $token = $token_iter->get();
+        die "Error" if $token->{value} eq '';
+
+        if ($token->{value} eq '{') {
+            $token_iter->back();
+            my $pair=parse_pair($token_iter);
+            $exp->add_child($pair);
+        } elsif ($token->{value} eq ';') {
+            $node->add_child(Aspk::Tree->new({data=>$token}));
+            last;
+        } else {
+            $exp->add_child(Aspk::Tree->new({data=>$token}));
+        }
+    }
+    return $node;
+}
+
+sub parse_pair {
+    my $token_iter=shift;
+    my $node = Aspk::Tree->new({data=>{type=>'pair',value=>''}});
+    my $token = $token_iter->get(); #this is literal '{'
+    $node->add_child(Aspk::Tree->new({data=>$token}));
+    while (1) {
+        $token = $token_iter->get();
+        die "Error" if $token->{value} eq '';
+
+        if ($token->{value} eq '{') {
+            $token_iter->back();
+            my $pair=parse_pair($token_iter);
+            $node->add_child($pair);
+        } elsif ($token->{value} eq '}') {
+            $node->add_child(Aspk::Tree->new({data=>$token}));
+            last;
+        } else {
+            $node->add_child(Aspk::Tree->new({data=>$token}));
+        }
+    }
+    return $node;
 }
 
 sub display {
