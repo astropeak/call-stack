@@ -1,0 +1,354 @@
+* call stack
+  Display 'call stack' info without a debuger
+** TODOs
+*** TODO for perl
+    - State "TODO"       from ""           [2016-05-24 Tue 22:24]
+**** DONE trace sub enter and exit
+     CLOSED: [2016-05-23 Mon 11:33]
+     - State "DONE"       from "TODO"       [2016-05-23 Mon 11:33]
+***** DONE convert source code to tokens
+      CLOSED: [2016-05-22 Sun 18:39]
+      - State "DONE"       from "TODO"       [2016-05-22 Sun 18:39]
+      - State "TODO"       from ""           [2016-05-21 Sat 21:55]
+****** 总体实现思路
+       tokens are in an array. each token has such property:
+       #+begin_src c
+       type;
+       value;
+       #+end_src
+       
+       For our current purpose, when only need below tokens:
+       | type    | value              |
+       |---------+--------------------|
+       | subname | sub\b+(name)?      |
+       | literal | {                  |
+       | literal | }                  |
+       | other   | all other contents |
+       
+       At any points, we match from top to bottom.
+       
+       实现：
+       #+begin_src org
+       1. try match a subname
+          if yes, goto 1
+          if no, goto next
+       2. try match a '{'
+          if yes, goto 1
+          if no, goto next
+       3. try match a '}'
+          if yes, goto 1
+          if no, goto next
+       4. [optional] match 可能包含以上字符的 量， 比如 字符串，正则表达式，注释。但这步刚开始时可先不做。
+          这些match 成功后， 也可放入当前的 other 变量（因为我们后续的操作并不关心这些类型）。 这也是个好主意。 哈哈。
+       5. forward one character, then goto 1 (this idea is quite *GOOD* and *simple*. Great!)
+          and put the current character to the current other variable if it is not whitespace(We will discard all white space)
+          latter we can match a string or regexp before this step, to avoid a '}' in a string that will cause error.
+
+       Note: if matching result is yes in steps 1,2,3, then first exit and save current other variable and create a new one.
+       #+end_src
+       
+       方法论：
+       以上可以写成一个框架，重复使用，对于不同语言。
+       
+****** 分步实现
+******* source code迭代器封装接口
+        接口:
+        | name | arguments     | return value                     | description                      |
+        |------+---------------+----------------------------------+----------------------------------|
+        | new  | a file name   | a new iterator object            | create a new iterator object     |
+        | get  | no            | a single char string             | return the current char at front |
+        |      |               | if no more, then an empty string |                                  |
+        | get  | a regexp      | matched string if matched        | try to match regexp at front.    |
+        |      |               | empty string if not matched      |                                  |
+        | put  | a char string | no                               | put the argument to the front    |
+
+        class name: FileCharIterator
+******** implementation
+         modle:
+         
+******* generate token list
+        This is just the translation of steps in 总体实现思路
+
+        #+begin_src perl
+        use Aspk::FileCharIterator;
+        my $fciter=Aspk::FileCharIterator('test.pl');
+        my @token;
+
+        while (1) {
+            my $t;
+            my $current_other;
+
+            # match a subname
+            $t=$fciter->get(/sub\s+\w*/);
+            if ($t ne '') {
+                if ($current_other ne '') {
+                    push @token, {type=>other, value=>$current_other};
+                    $current_other='';
+                }
+                push @token, {type=>subname, value=>$t};
+                next;
+            }
+
+            # match a { or }
+            $t=$fciter->get(/{|}/);
+            if ($t ne '') {
+                if ($current_other ne '') {
+                    push @token, {type=>other, value=>$current_other};
+                    $current_other='';
+                }
+                push @token, {type=>literal, value=>$t};
+                next;
+            }
+
+            # all other things
+            $t=$fciter->get();
+            $current_other.=$t if $t=~\s;
+
+            last if ($t eq '');
+        }
+        #+end_src
+       
+****** 这个可以做成一个通用的东西
+       如实现括号匹配。现在的代码就可以实现。
+       只匹配关心的数据，这个思路很好。不会太复杂。
+       
+***** DONE convert tokens to list of sub definitions
+      CLOSED: [2016-05-22 Sun 22:22]
+      - State "DONE"       from "TODO"       [2016-05-22 Sun 22:22] \\
+        Great!! Works very good. See Dropbox/project/call-stack/ASTer.pm
+      - State "TODO"       from ""           [2016-05-21 Sat 21:55]
+      首先将tokens转换为一个树状的结构，根结点为 “ROOT“， 每个ELEMENT为
+      1. 一个sub definition
+         sub definition可做为新的ROOT。
+      2. other
+         这个是叶结点。
+         
+      实现：
+      #+begin_src org
+      current token is:
+      1. other
+         yes: add a child node to current root. goto 1
+         no: goto next
+      2. subname
+         yes: add a child node to current root, and set current root to this child node. goto next
+         no: goto next
+      3. literal '{'
+         yes: add a child node to current root. and increase current 'left brace' by one. goto 1
+         no: goto next
+      4. literal '}'
+         yes: add a child node to current root. and descrease current 'left brace' by one. if then 'left brace' equals to 0, then exit current root, and recover the old current root. if 'left brace' less than 0, then error. goto 1
+         no: impossiable no here.
+      #+end_src
+
+      有了这个树结构后，生成所有的sub definitions的list 就非常简单了。
+
+***** DONE add trace
+      CLOSED: [2016-05-23 Mon 11:03]
+      - State "DONE"       from "TODO"       [2016-05-23 Mon 11:03]
+****** DONE add trace node to AST tree
+       CLOSED: [2016-05-23 Mon 11:03]
+       - State "DONE"       from "TODO"       [2016-05-23 Mon 11:03]
+       - State "TODO"       from ""           [2016-05-23 Mon 10:20]
+       input: AST
+       output: traces added to all sub enter and exit position.
+
+       method:
+       if node type is 'subname', then add a enter trace node as the second child, and an exit trace node as the last second child. Because the first child is '{' and the last child is '}'.
+
+       Then should modify the add_child method of Tree, to given a second parameter to specify the position.
+       
+****** BUGs
+       1. 'sub{}' will not match as a subname, while 'sub {}' can.
+       2. string and comment and regexp and here doc will affect the result.
+
+**** DONE parse string, regexp, comment, here doc
+     CLOSED: [2016-05-23 Mon 17:21]
+     - State "DONE"       from "TODO"       [2016-05-23 Mon 17:21]
+***** DONE parse string
+      CLOSED: [2016-05-23 Mon 14:00]
+      - State "DONE"       from "TODO"       [2016-05-23 Mon 14:00]
+      - State "TODO"       from ""           [2016-05-23 Mon 13:21]
+        
+      interface:
+      string_or_empty get_string(fciter)
+      get a string at front, and consume the fciter. If can't get, then return empty string, and fciter not consumed.
+      
+      impelment:
+      1. check first char
+         if it is ' or ", go to 2;
+         else return "";
+      2. for other char at any pos
+         if it is the same as string starter, the string matched. return that string;
+         if it is \, then read next char, and put both to result string, then go to 2.
+         else put the char to result string, then go to 2.
+         
+      code:
+     #+begin_src perl :results output
+     sub get_string {
+         my $fciter=shift;
+         my $starter=$fciter->get('\'|"');
+         if ($starter eq '') {
+             return '';
+         }
+     
+         my $result = $starter;
+         while (1){
+             my $c=$fciter->get();
+             last if $c eq '';
+     
+             if ($c eq $starter) {
+                 return $result.$c;
+             } else if ($c eq '\\') {
+                 $result.=$c.$fciter->get();
+             } else {
+                 $result.=$c;
+             }
+         }
+         return $result;
+     }
+     #+end_src
+      
+***** DONE parse comment
+      CLOSED: [2016-05-23 Mon 16:33]
+      - State "DONE"       from "TODO"       [2016-05-23 Mon 16:33]
+      - State "TODO"       from "TODO"       [2016-05-23 Mon 14:01]
+      Interface:
+      string_or_empty get_comment(fciter)
+
+      Implement:
+      much like get_string.
+      1. check if first char is '#'
+         yes: goto 2
+         no: return '';
+      2. if char is "\n", then return the result
+         else put the char to result string.
+      
+***** DONE parse regexp
+      CLOSED: [2016-05-23 Mon 17:21]
+      - State "DONE"       from "TODO"       [2016-05-23 Mon 17:21]
+      - State "TODO"       from ""           [2016-05-23 Mon 16:33]
+        
+      Perl regexp syntax:
+      m//xxx
+      s///xxx
+      qr//xxx
+      
+      This should be much like get_string.
+      Implement:
+      1. check if first chars are m/, s/ or qr/,
+         yes, init wanted_end = 1 if m/ or qr/, 2 if s/. go to 2;
+         no, return '';
+      2. for any char at any pos
+         1. if it is /, 
+            inc matched_end;
+            if (wanted_end == matched_end), get the xxx part, and return result.
+            else go to 2.
+            
+         2. if it is \, then read next char, and put both to result string, then go to 2.
+         3. else put the char to result string, then go to 2.
+      
+**** DONE [with bug] exit sub trace should be added before every 'return statement'
+     CLOSED: [2016-05-23 Mon 15:03]
+     - State "DONE"       from "TODO"       [2016-05-23 Mon 15:03]
+     - State "TODO"       from ""           [2016-05-23 Mon 14:40]
+     Or it will have no use. 
+     
+     implement:
+     查找subname的所有children, 将 exit trace加在 {literal, return} node之前。
+     
+***** BUGs
+      Not work in below two cases.
+
+      This one is invalid syntax in perl.
+      #+begin_src perl :results output
+      if (1)
+          return 1;
+      #+end_src
+      
+     #+begin_src perl :results output
+     return 1 if 1;
+     #+end_src
+      
+**** DONE add filename, line number.
+     CLOSED: [2016-05-23 Mon 20:19]
+     - State "DONE"       from "TODO"       [2016-05-23 Mon 20:19]
+     - State "TODO"       from ""           [2016-05-23 Mon 17:39]
+     
+     add file name is quite simple, cause it is passed to main.pl.
+     可通过一次遍历来计算每个token的行号， 而不是在解析时。这样虽然多运行了一遍，但代码不容易乱。 则计算行号也可在main中进行。
+
+     实现：
+     对于每个token, calculate '\n' char in value(see usage-string.org for how), and cumulated.
+
+**** DONE print arguments
+     CLOSED: [2016-05-23 Mon 22:08]
+     - State "DONE"       from "TODO"       [2016-05-23 Mon 22:08]
+     - State "TODO"       from ""           [2016-05-23 Mon 17:39]
+     
+     arguments is easy, just print @_.
+     I will first add printing arguments.
+
+     implement:
+     @_[N]: possible type: string, number, ref.
+     format:
+     #+begin_src perl :results output
+     @_=("AAAAAAAAAAAAAAA", 234, "BBBBB", [1,3,4]);
+     $str = (join ", ", map {$____idx____++; my $a = "[$____idx____] $_"; if (length($a)>18) {substr($a, 18, 999999,"...");};$a;} @_);
+     print $str;
+     #+end_src
+
+     #+RESULTS:
+     : [1] AAAAAAAAAAAAAA..., [2] 234, [3] BBBBB, [4] ARRAY(0x9212a3...
+    
+**** TODO print return value
+     - State "TODO"       from ""           [2016-05-23 Mon 22:08]
+     return value is not that easy. we should get the remaining part of return statement, and extract it, and assign it to a variable, and print that variable and return variable. But, what type of variable should it be? It can be scalar or list, but we don't know at runtime. So this seems impossiable?
+
+     I think maybe I can make use of ~*name~ to save the return value. =>This doen't work.
+
+     Way:
+     Because return value can only be a scalar or a list, so it is easy.
+     Orig:
+     #+begin_src perl :results output
+     sub aaa {
+         my ($a, $b, $c)=(1,2,3);
+         return $a+$b+$c;
+     }
+     print aaa();
+     #+end_src
+
+     #+RESULTS:
+     : 6
+
+     Translated to :
+     #+begin_src perl :results output
+     sub aaa {
+         my ($a, $b, $c)=(1,2,3);
+         if (wantarray()){
+             print "list wanted\n";
+             my @a= ($a+$b+$c);
+             return @a;
+         } else {
+             print "scalar wanted\n";
+             my $aa=($a+$b+$c);
+             return $aa;
+         }
+     }
+     $a = aaa();
+     print $a;
+     #+end_src
+
+     #+RESULTS:
+     : scalar wanted
+     : 6
+
+     implement:
+     先实现简单情况：
+     1. 识别 ; 作为一个token。 则 ; 和 return 之前的内容即为 返回值表达式。
+     2. 在exit trace中打印这个表达式。
+     这样的问题是：返回值表达式被多次执行，不知是否会造成问题。如果有问题，后期可以再修正。比如先做转换，然后再加。转换为返回值表达式总为一个变量。
+        
+     具体步骤
+     1. 对于每个return结点，下一个结点为返回值或;结点。
+        如果下一个结点不为;结点，则将这个结点的字符串加到exit trace中。 用括号包起来。
+        
