@@ -48,5 +48,8 @@ sub print_call_stack {
     }
 
     return $self->get->{"aaaa", {a=>'BC', {8, 99}},"DD"};
+
+    return sub{my $a="AAAA";
+               return $a;};
 }
 

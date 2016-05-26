@@ -407,3 +407,8 @@
 
 
      
+** BUGs
+*** for perl
+**** sub in return expression will not be parsed as sub
+         return sub{my $a="AAAA";
+               return $a;};
