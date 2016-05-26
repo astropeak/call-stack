@@ -164,8 +164,6 @@ sub get_regexp {
         return '';
     }
 
-    print ":$result:\n";
-
     my $wanted_end = 1;
     $wanted_end = 2 if $result eq 's/';
 
