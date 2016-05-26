@@ -104,7 +104,7 @@ $aster->traverse({postfunc=>
                   }});
 
 
-# add enter and exit trace
+# add enter and exit trace at begin sub and end sub
 $aster->traverse({postfunc=>
                       sub{
                           my $para = shift;
@@ -119,7 +119,17 @@ $aster->traverse({postfunc=>
                                   type=>'other',
                                   value=>exit_trace($file, $node->prop(children)->[-1]->prop(data)->{row}, $data->{value}, ')."\n";'."\n")
                                                                 }}), -1);
+                          }
+                  }});
 
+
+# add enter and exit trace before every return
+$aster->traverse({postfunc=>
+                      sub{
+                          my $para = shift;
+                          my $data = $para->{data};
+                          my $node = $para->{node};
+                          if ($data->{type} eq 'return_exp_transformed') {
                               # add before all return
                               my @new_children;
                               my $i=0;
