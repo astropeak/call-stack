@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use AddTrace;
+use Aspk::Debug;
+
+open my $fh, '<', '__call-stack-files__' or die "Can't open file";
+my @sources = map {chomp;$_} <$fh>;
+
+dbgm \@sources;
+my $root = "./__call-stack-dir__";
+# system("mkdir $root");
+
+foreach (@sources) {
+    my @a = split "::", $_;
+    my $file=pop @a;
+    $file.='.pm';
+    my $dir=join "/",@a;
+    my $whole_dir=$root.'/'.$dir;
+    system("mkdir -p $whole_dir");
+
+    my $whole_file=get_module_name($dir.'/'.$file);
+
+    my $at = AddTrace->new($whole_file, "$whole_dir/$file");
+    $at->build();
+}
+
+system("perl -I $root $ARGV[0]");
+
+sub get_module_name {
+    my $file=shift;
+    foreach (@INC){
+        my $t="$_/$file";
+        if (-e $t) {
+            dbgm $t, $file;
+            return $t;
+        }
+    }
+    return "";
+}
+

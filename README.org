@@ -405,8 +405,31 @@
 
 
 
-
+**** DONE 集成
+     CLOSED: [2016-05-26 Thu 21:47]
+     - State "DONE"       from "TODO"       [2016-05-26 Thu 21:47]
+     - State "TODO"       from ""           [2016-05-26 Thu 17:09]
      
+     最终的程序名称： perl-call-stack
+
+     运行：
+     perl-call-stack test.pl。 运行结果与 perl test.pl 相同，但增加了函数进入、退出的打印。并且不影响任何源文件。
+     当前目前下的.call-stack-files 记录需要处理的文件及模块名称，文件需要是全路径。
+     
+     实现：
+     首先依次处理 .call-stack-files 文件中的所有文件，并将结果写入一个新的目录（如 /tmp/xxxx），并将这个新的目录加入perl lib 的搜索路径的最前面（则运行时，会使用这个处理过后版本）。
+     
+     实现：
+     1. perl-call-stack test.pl
+        1. 读取待处理源模块名到 @sources，从./call-stack-files文件。
+        2. 创建一个文件夹， $root，用于保存处理后的源文件。
+        3. 对于每个模块名
+           1. 计算它的模块名称部分， (dir, dir, ..., file)
+           2. 在$root dir下创建需要的dir
+           3. 根据模块名及@INC，打到模块文件
+           4. 处理文件添加trace, 将且处理后的文件保存在dir下。
+        4. 最后运行 perl test.pl
+
 ** BUGs
 *** for perl
 **** sub in return expression will not be parsed as sub
