@@ -78,6 +78,8 @@ sub parse_return_exp(){
     $node->add_child($exp);
     while (1) {
         $token = $token_iter->get();
+        die "Error" if $token->{value} eq '';
+
         if ($token->{value} eq '{') {
             $token_iter->back();
             my $pair=parse_pair($token_iter);
@@ -99,6 +101,8 @@ sub parse_pair {
     $node->add_child(Aspk::Tree->new({data=>$token}));
     while (1) {
         $token = $token_iter->get();
+        die "Error" if $token->{value} eq '';
+
         if ($token->{value} eq '{') {
             $token_iter->back();
             my $pair=parse_pair($token_iter);
