@@ -4,6 +4,7 @@ use Tokener;
 use ASTer;
 use Aspk::Debug;
 use File::Basename;
+use Aspk::Tree;
 
 my $file = @ARGV[0];
 die "Usage: perl main.pl FILE_NAME\n" unless defined $file;
@@ -51,6 +52,57 @@ sub exit_trace {
     my $str=shift;
     qq{print "${\header($file, $row)} Exit $subname. Exit value:".( $str};
 }
+
+# transform return statement
+sub transfrom_return_exp {
+    my $return_exp=shift;
+    my @children=@{$return_exp->prop(children)};
+    # my $exp=$children[1];
+    my $node=Aspk::Tree->new({data=>{type=>'return_exp_transformed'}});
+    Aspk::Tree->new({data=>{type=>'other', value=>'if (wantarray()){
+ my @___a___=('},
+                     parent=>$node});
+    $node->add_child($children[1]);
+    Aspk::Tree->new({data=>{type=>'other', value=>');
+'}, parent=>$node});
+    my $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>''}, parent=>$node});
+    $node_1->add_child($children[0]);
+    my $exp=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$node_1});
+    Aspk::Tree->new({data=>{type=>'other', value=>' @___a___'}, parent=>$exp});
+    Aspk::Tree->new({data=>{type=>'literal', value=>';'}, parent=>$node_1});
+
+    # else part
+    Aspk::Tree->new({data=>{type=>'other', value=>'
+ } else {
+ my $___a___=('},
+                     parent=>$node});
+    $node->add_child($children[1]);
+    Aspk::Tree->new({data=>{type=>'other', value=>');
+'}, parent=>$node});
+    $node_1 = Aspk::Tree->new({data=>{type=>'return_exp', value=>''}, parent=>$node});
+    $node_1->add_child($children[0]);
+    my $exp=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$node_1});
+    Aspk::Tree->new({data=>{type=>'other', value=>' $___a___'}, parent=>$exp});
+    Aspk::Tree->new({data=>{type=>'literal', value=>';'}, parent=>$node_1});
+
+    Aspk::Tree->new({data=>{type=>'other', value=>'
+}'}, parent=>$node});
+
+    return $node;
+}
+$aster->traverse({postfunc=>
+                      sub{
+                          my $para = shift;
+                          my $node = $para->{node};
+                          my @children=@{$node->prop(children)};
+                          for (my $i=0;$i<@children;++$i){
+                              if ($children[$i]->prop(data)->{type} eq 'return_exp') {
+                                  # $children[$i] = transfrom_return_exp($children[$i]);
+                                  $node->prop(children)->[$i] = transfrom_return_exp($children[$i]);
+                              }
+                          }
+                  }});
+
 
 # add enter and exit trace
 $aster->traverse({postfunc=>
