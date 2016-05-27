@@ -51,7 +51,7 @@ sub _token {
     my @token, $current_other, $t;
     while (1) {
         # match a subname
-        $t=$fciter->get('sub\s+\w*\s*');
+        $t=$fciter->get('sub\s+\w*\s*(\(.*\))?\s*');
         # dbgm $t;
         if ($t ne '') {
             if ($current_other ne '') {

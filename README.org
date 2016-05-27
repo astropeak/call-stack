@@ -443,6 +443,25 @@
 
      Just one regexp and work done!
         
+**** DONE parse sub arglist
+     CLOSED: [2016-05-27 Fri 17:20]
+     - State "DONE"       from "TODO"       [2016-05-27 Fri 17:20]
+     - State "TODO"       from ""           [2016-05-27 Fri 17:08]
+
+     if sub has arg list, enter trace will be added after it.
+     #+begin_src perl :results output
+     sub aaa () {
+         1;
+     }
+     #+end_src
+
+     implement:
+     1. add parse literal '\(' and '\)' as token
+     2. modify parse subname in aster
+
+     Another simple way: just parse '()' as part of token 'subname'.
+     I will use this way, because it is easy.
+
 ** BUGs
 *** for perl
 **** sub in return expression will not be parsed as sub
@@ -457,12 +476,4 @@
      If add trace, trace will be added after 1;, then return value will be changed.
 
      right way is first transforming last line to a return expression, then do adding traces.
-
-
-**** if sub has arg list, enter trace will be added after it.
-     #+begin_src perl :results output
-     sub aaa () {
-         1;
-     }
-     #+end_src
 

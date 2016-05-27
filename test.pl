@@ -66,3 +66,10 @@ sub print_call_stack {
 =cut ABC
 
 print "end\n";
+
+sub AA () {
+    aaa;
+}
+sub BB (&a&) {
+    aaa;
+}
