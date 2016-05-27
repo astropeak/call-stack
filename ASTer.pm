@@ -27,23 +27,12 @@ sub build {
         last unless defined $token;
         # dbgm $token;
 
-        if ($token->{type} eq 'other' ||
-            $token->{type} eq 'string' ||
-            $token->{type} eq 'regexp' ||
-            $token->{type} eq 'comment') {
-            $current_root->add_child(Aspk::Tree->new({data=>$token}));
-            next;
-        }
-
         if ($token->{type} eq 'subname') {
             my $t = Aspk::Tree->new({data=>$token, parent=>$current_root});
             $current_root->prop(current_left_brace_count, $current_left_brace_count);
             $current_left_brace_count=0;
             $current_root = $t;
-            next;
-        }
-
-        if ($token->{type} eq 'literal') {
+        } elsif ($token->{type} eq 'literal') {
             if ($token->{value} eq '{') {
                 $current_left_brace_count++;
                 $current_root->add_child(Aspk::Tree->new({data=>$token}));
@@ -63,9 +52,9 @@ sub build {
             }else {
                 $current_root->add_child(Aspk::Tree->new({data=>$token}));
             }
-            next;
+        } else {
+            $current_root->add_child(Aspk::Tree->new({data=>$token}));
         }
-        die "Cant be here";
     }
 }
 
