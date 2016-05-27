@@ -24,7 +24,7 @@ foreach (@sources) {
     $at->build();
 }
 
-system("perl -I $root $ARGV[0]");
+system("perl -MAddTrace -I $root $ARGV[0]");
 
 sub get_module_name {
     my $file=shift;
