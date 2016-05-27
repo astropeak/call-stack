@@ -53,3 +53,16 @@ sub print_call_stack {
                return $a;};
 }
 
+=aaaa
+
+
+    aaabbccc
+
+
+
+
+
+    sssddd
+=cut ABC
+
+print "end\n";

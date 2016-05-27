@@ -62,6 +62,18 @@ sub _token {
             next;
         }
 
+        # match a POD
+        $t=$fciter->get('\n=[\d\D]*\n=cut.*');
+        # dbgm $t;
+        if ($t ne '') {
+            if ($current_other ne '') {
+                push @token, {type=>other, value=>$current_other};
+                $current_other='';
+            }
+            push @token, {type=>POD, value=>$t};
+            next;
+        }
+
         # match a { or }
         $t=$fciter->get('{|}|return|;');
         if ($t ne '') {

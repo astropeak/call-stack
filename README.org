@@ -403,8 +403,6 @@
       }
       #+end_src
 
-
-
 **** DONE 集成
      CLOSED: [2016-05-26 Thu 21:47]
      - State "DONE"       from "TODO"       [2016-05-26 Thu 21:47]
@@ -430,6 +428,21 @@
            4. 处理文件添加trace, 将且处理后的文件保存在dir下。
         4. 最后运行 perl test.pl
 
+**** DONE parse POD
+     CLOSED: [2016-05-27 Fri 16:59]
+     - State "DONE"       from "TODO"       [2016-05-27 Fri 16:59]
+     - State "TODO"       from ""           [2016-05-27 Fri 16:11]
+     What is a POD:
+     A line start with ~=~ is a documents. ~=cut~ end the documents.
+
+     Implement:
+     add a new token type POD
+
+     Step:
+     1. see if we can get '\n=[\d\D]*\n=cut.*' from file char iterator
+
+     Just one regexp and work done!
+        
 ** BUGs
 *** for perl
 **** sub in return expression will not be parsed as sub
