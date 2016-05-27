@@ -1,5 +1,4 @@
-use MemoizeAT;
-use AddTrace;
+use Memoize;
 
 memoize fib;
 sub fib {
