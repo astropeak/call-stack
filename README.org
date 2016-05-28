@@ -644,3 +644,13 @@
 **** sub in return expression will not be parsed as sub
          return sub{my $a="AAAA";
          return $a;};
+**** parse line element error
+     below expression will be parsed as two line element.
+
+     $a->{name}->{type};
+
+     line element 不止之前分析的情况， 还应该包括以下：
+     1. hash的解析。 这种情况为：
+
+     只有一个{}的情况： 第一个元素为： 
+        
