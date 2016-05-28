@@ -69,7 +69,14 @@ print "end\n";
 
 sub AA () {
     aaa;
+    return $a->{name}->{type};
 }
 sub BB (&a&) {
-    aaa;
+    return $a;
+}
+
+if (1) {
+    2
+} else {
+    3
 }

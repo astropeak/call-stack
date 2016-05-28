@@ -462,18 +462,185 @@
      Another simple way: just parse '()' as part of token 'subname'.
      I will use this way, because it is easy.
 
-** BUGs
-*** for perl
-**** sub in return expression will not be parsed as sub
-         return sub{my $a="AAAA";
-               return $a;};
-**** return value will be changed if no return key word at last line in a sub
+**** TODO transform last line of a sub to a return statement
+     - State "TODO"       from ""           [2016-05-27 Fri 17:24]
+     
+     return value will be changed if no return key word at last line in a sub
      #+begin_src perl :results output
      sub aaa {
          1;
      }
      #+end_src
      If add trace, trace will be added after 1;, then return value will be changed.
-
      right way is first transforming last line to a return expression, then do adding traces.
 
+     There are two thing to do:
+     1. add return
+     2. add ; if needed.
+
+     Not that easy to implement.
+
+     Any easy way is:
+     1. first add the ';' if missing, and remove if more at end of last line.
+     2. conside all nodes between last ';' and last second ';' as last line.
+        but should also consider {}
+**** TODO ASTer 重构：将token先分解为行元素，然后一次次变形，得到最终结果
+     - State "TODO"       from ""           [2016-05-28 Sat 09:05]
+
+     行元素：任意元素+‘；‘， 或任意元素+一个{} pair.
+     这是第一遍处理，结果为一个TREE， 之后可再在这个基础上进行变形转换，得到最终结果。
+
+     比如要解析subname, 则可将一个 subname, pair 的组合变形为一个元素，sub，这个元素有三个子元素：literal sub, name name, arglist, pair body.
+
+     比如要解析 return expression, 则可再进行一遍处理。 如果当前行元素的第一个元素为literal return, 则将剩余的所有元素都作为expression 部分。
+     
+     这每一步都比较简单，但组合起来，就可实现复杂的功能。
+
+***** DONE 处理为行元素
+      CLOSED: [2016-05-28 Sat 16:28]
+      - State "DONE"       from "TODO"       [2016-05-28 Sat 16:28]
+      - State "TODO"       from ""           [2016-05-28 Sat 15:39]
+      实现：
+      1. 当前token为 literal ';', 则结束当前行元素，开始一个新的行元素。
+      2. 为literal '{'， match 一个pair， 并且将这个pair加入到当前行元素，结束行元素，开始一个新的行元素。在match pair的内部，开始一个新的行元素。
+      3. 为其它， 加入当前行元素。
+
+      代码：
+      #+begin_src perl :results output
+      use Aspk::Tree;
+      sub parse_line_element{
+          my $token_iter = shift;
+          my $line_element=Aspk::Tree->new({data=>{type=>'line-element'}});
+          while (1) {
+              my $t = $token_iter->get();
+              if ($t->{value} eq '}') {
+                  if (@{$line_element->prop(children)} == 0) {
+                      return undef;
+                  } else {
+                      return $line_element;
+                  }
+              }
+
+              if ($t->{value} eq ';') {
+                  return $line_element;
+              } elsif ($t->{value} eq '{') {
+                  my $pair=Aspk::Tree->new({data=>{type=>'pair'}, parent=>$line_element});
+                  while (my $le=parse_line_element($token_iter)) {
+                      $pair->add_child($le);
+                  }
+                  $t=$token_iter->get();
+                  die "token should be }" if $t->{value} ne '}';
+                  return $line_element;
+              } else {
+                  Aspk::Tree->new({data->$t,parent=>$line_element});
+              }
+          }
+      }
+      #+end_src
+
+      
+***** DONE 解析sub
+      CLOSED: [2016-05-28 Sat 16:49]
+      - State "DONE"       from "TODO"       [2016-05-28 Sat 16:49]
+      - State "TODO"       from ""           [2016-05-28 Sat 16:29]
+      转换前：
+      line-element
+        ...
+        subname:xxxx
+        pair
+        ...
+      
+      转换后：
+      line-element
+        ...
+        sub
+          subname:xxxx
+          pair
+        ...
+
+      实现：
+      将 type:subname, and type:pair的两个元素合并为type:sub一个元素， 这个元素的子元素包含type:subname和type:pair这两个元素。
+
+      输入：
+      一个line element。
+      输出，一个新的line element, 但解析了sub元素。
+      
+      代码：
+      #+begin_src perl :results output
+      sub parse_sub {
+          my $sle = shift;
+          my $dle = Aspk::Tree->new({data=>{type=>'line-element'}});
+          my @children = @{$sle->prop(children)};
+          for (my $i=0;$i<@children;$i++) {
+              if ($children[$i]->prop(data)->{type} eq 'subname') {
+                  my $ssub=Aspk::Tree->new({data=>{type=>'sub'}, parent=>$dle});
+                  $ssub->add_child($children[$i]);
+                  ++$i;
+                  die "should be pair" if $children[$i]->prop(data)->{type} ne 'pair';
+                  $ssub->add_child($children[$i]);
+              } else {
+                  $dle->add_child($children[$i]);
+              }
+          }
+          $return $dle;
+      }
+      #+end_src
+
+
+      
+***** DONE 解析return expression
+      CLOSED: [2016-05-28 Sat 23:06]
+      - State "DONE"       from "TODO"       [2016-05-28 Sat 23:06]
+      - State "TODO"       from ""           [2016-05-28 Sat 16:52]
+      将一个 line element， 如果其为一个return statement，则将其转换为以下格式：
+
+      转换前：
+      line-element
+        literal:return
+        ....
+        ...
+      
+      转换后：
+      line-element
+        return-exp
+          literal: return
+          exp
+            ...
+            ...
+
+      code:
+      #+begin_src perl :results output
+
+      sub parse_return_exp(){
+          my $le = shift;
+          my @children = @{$le->prop(children)};
+          my @dchildren;
+          for (my $i=0;$i<@children;$i++) {
+              if ($children[$i]->prop(data)->{value} eq 'return') {
+                  my $ssub=Aspk::Tree->new({data=>{type=>'return_exp'}});
+                  push @dchildren, $ssub;
+                  $ssub->add_child($children[$i]);
+                  $ssub=Aspk::Tree->new({data=>{type=>'exp'}, parent=>$ssub});
+                  last;
+              } else {
+                  push @dchildren, $children[$i];
+              }
+          }
+
+          for (;$i<@children;$i++) {
+              $ssub->add_child(@children[$i]);
+          }
+          $sle->prop(children, \@dchildren);
+      }
+
+      #+end_src
+
+      
+** BUGs
+*** for perl
+**** below sub will not be parsed as sub
+         return sub{my $a="AAAA";
+               return $a;};
+**** sub in return expression will not be parsed as sub
+         return sub{my $a="AAAA";
+         return $a;};
