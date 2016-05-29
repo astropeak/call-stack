@@ -77,6 +77,8 @@ sub AA () {
     if (2) {
         "BBBB";
         return $a = $b->{name}->{type1}
+    } else {
+        "DDDD"
     }
     return $a->{name}->{type};
 }
@@ -88,9 +90,12 @@ sub CC {
     if (1) {
         $a->{name}->{type}
     }
-    # elsif ($aaabbbcc){
-    #     $b->{'elsif'}->{type}
-    # }
+    elsif ($aaabbbcc) {
+        $b->{'elsif'}->{type}
+    }
+    elsif ($aaabbbcc) {
+        $b->{'elsif'}->{type}
+    }
     else {
         $b->{'else'}->{type}
     }
