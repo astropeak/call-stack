@@ -66,6 +66,7 @@ sub print_call_stack {
     =cut ABC
 
     print "end\n";
+=cut
 
 sub AA () {
     my $b;
@@ -86,10 +87,12 @@ sub BB (&a&) {
 sub CC {
     if (1) {
         $a->{name}->{type}
-    } elsif ($aaabbbcc){
-        $b->{elsif}->{type}
-    } else {
-        $b->{else}->{type}
+    }
+    # elsif ($aaabbbcc){
+    #     $b->{'elsif'}->{type}
+    # }
+    else {
+        $b->{'else'}->{type}
     }
 
     $c->{A}{B};
