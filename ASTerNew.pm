@@ -20,8 +20,21 @@ sub build {
     my ($self) = @_;
     my $token_iter = $self->prop(token_iter);
     my $token, $current_root;
-    while (my $le = parse_line_element($token_iter)) {
-        $self->add_child($le);
+    # while (my $le = parse_line_element($token_iter)) {
+    # $self->add_child($le);
+    # }
+
+    while (1) {
+        $token = $token_iter->get();
+        last unless defined $token;
+
+        if ($token->{value} eq '{') {
+            # $token_iter->back();
+            my $pair=parse_pair($token_iter);
+            $self->add_child($pair);
+        } else {
+            $self->add_child(Aspk::Tree->new({data=>$token}));
+        }
     }
 
     # transform subname and pair to sub
@@ -29,10 +42,11 @@ sub build {
                          sub{
                              my $para = shift;
                              my $node = $para->{node};
-                             if ($node->prop(data)->{type} eq 'line-element') {
-                                 parse_sub($node);
-                                 parse_return_exp($node);
-                             }
+                             # if ($node->prop(data)->{type} eq 'line-element') {
+                             # parse_sub($node);
+                             # parse_return_exp($node);
+                             # }
+                             parse_line_element_simple($node);
                      }});
 
 }
@@ -65,18 +79,18 @@ sub parse_return_exp_orig(){
 sub parse_pair {
     my $token_iter=shift;
     my $node = Aspk::Tree->new({data=>{type=>'pair',value=>''}});
-    my $token = $token_iter->get(); #this is literal '{'
-    $node->add_child(Aspk::Tree->new({data=>$token}));
+    # my $token = $token_iter->get(); #this is literal '{'
+    # $node->add_child(Aspk::Tree->new({data=>$token}));
     while (1) {
         $token = $token_iter->get();
         die "Error" if $token->{value} eq '';
 
         if ($token->{value} eq '{') {
-            $token_iter->back();
+            # $token_iter->back();
             my $pair=parse_pair($token_iter);
             $node->add_child($pair);
         } elsif ($token->{value} eq '}') {
-            $node->add_child(Aspk::Tree->new({data=>$token}));
+            # $node->add_child(Aspk::Tree->new({data=>$token}));
             last;
         } else {
             $node->add_child(Aspk::Tree->new({data=>$token}));
@@ -107,6 +121,76 @@ sub remove_token_iter {
                      }});
 }
 
+
+sub parse_line_element_simple{
+    my $node = shift;
+    my @children = @{$node->prop(children)};
+    my @dchildren;
+    my $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+    for (my $i=0;$i<@children;$i++) {
+        if ($children[$i]->prop(data)->{value} eq ';') {
+            $nn->add_child($children[$i]);
+            push @dchildren, $nn;
+            $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+        } elsif ($children[$i]->prop(data)->{value} =~ /\bif\b/) {
+            # parse if-statement
+            if ($children[$i+1]->prop(data)->{type} eq 'pair') {
+                die "Child should be zero" if @{$nn->prop(children)} != 0;
+                my $ii = Aspk::Tree->new({data=>{type=>'if_statement'}, parent=>$nn});
+                my $iii = Aspk::Tree->new({data=>{type=>'if_part'}, parent=>$ii});
+                $iii->add_child($children[$i]);
+                $iii->add_child($children[$i+1]);
+                ++$i;
+
+                # parse all elsif part
+                my $flag=1;
+                while ($flag) {
+                    if ($children[$i+1]->prop(data)->{value} =~ /\b(elsif|else)\b/) {
+                        # die "AAAA";
+                        my $iii = Aspk::Tree->new({data=>{type=>'else_part'}, parent=>$ii});
+                        $iii->add_child($children[$i+1]);
+                        $iii->add_child($children[$i+2]);
+                        ++$i;
+                        ++$i;
+                    } else {
+                        $flag=0;
+                    }
+                }
+
+                push @dchildren, $nn;
+                $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+            } else {
+                # die "Should be pair";
+            }
+        } else {
+            $nn->add_child($children[$i]);
+        }
+    }
+
+    if (@{$nn->prop(children)} > 0) {
+        push @dchildren, $nn;
+    }
+    $node->prop(children, \@dchildren);
+}
+
+# sub parse_if_statement{
+#     my $node = shift
+#         my @children = @{$node->prop(children)};
+#     my @dchildren;
+#     my $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+#     for (my $i=0;$i<@children;$i++) {
+#         $nn->add_child($children[$i]);
+#         if ($children[$i]->prop(data)->{value} eq ';') {
+#             push @dchildren, $nn;
+#             $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+#         }
+#     }
+
+#     if (@{$nn->prop(children)} > 0) {
+#         push @dchildren, $nn;
+#     }
+#     $node->prop(children, \@dchildren);
+# }
 
 sub parse_line_element{
     my $token_iter = shift;

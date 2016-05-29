@@ -63,20 +63,37 @@ sub print_call_stack {
 
 
     sssddd
-=cut ABC
+    =cut ABC
 
-print "end\n";
+    print "end\n";
 
 sub AA () {
-    aaa;
+    my $b;
+    if (1) {
+        return $a = $b->{name}->{type1}
+    }
+
+    if (2) {
+        "BBBB";
+        return $a = $b->{name}->{type1}
+    }
     return $a->{name}->{type};
 }
 sub BB (&a&) {
-    return $a;
+    $a->{name}->{type}
 }
 
-if (1) {
-    2
-} else {
-    3
+sub CC {
+    if (1) {
+        $a->{name}->{type}
+    } elsif ($aaabbbcc){
+        $b->{elsif}->{type}
+    } else {
+        $b->{else}->{type}
+    }
+
+    $c->{A}{B};
 }
+
+aaa;
+bbb;

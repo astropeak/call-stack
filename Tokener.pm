@@ -120,8 +120,8 @@ sub _token {
 
         # all other things
         $t=$fciter->get();
-        # $current_other.=$t unless $t=~/\n/;
-        $current_other.=$t;
+        $current_other.=$t unless $t=~/\n/;
+        # $current_other.=$t;
 
         last if ($t eq '');
     };

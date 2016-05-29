@@ -486,16 +486,16 @@
         but should also consider {}
 **** TODO ASTer 重构：将token先分解为行元素，然后一次次变形，得到最终结果
      - State "TODO"       from ""           [2016-05-28 Sat 09:05]
-
+       
      行元素：任意元素+‘；‘， 或任意元素+一个{} pair.
      这是第一遍处理，结果为一个TREE， 之后可再在这个基础上进行变形转换，得到最终结果。
-
+     
      比如要解析subname, 则可将一个 subname, pair 的组合变形为一个元素，sub，这个元素有三个子元素：literal sub, name name, arglist, pair body.
-
+     
      比如要解析 return expression, 则可再进行一遍处理。 如果当前行元素的第一个元素为literal return, 则将剩余的所有元素都作为expression 部分。
      
      这每一步都比较简单，但组合起来，就可实现复杂的功能。
-
+     
 ***** DONE 处理为行元素
       CLOSED: [2016-05-28 Sat 16:28]
       - State "DONE"       from "TODO"       [2016-05-28 Sat 16:28]
@@ -635,6 +635,62 @@
 
       #+end_src
 
+***** TODO merge line elements for return statement
+      - State "TODO"       from ""           [2016-05-29 Sun 14:24]
+      目前一个return statement会被解析为多个line element.
+      比如： ~return $a->{name}->{type}~ ， 会被解析为两个line element
+      
+      目标：
+      将一个return statement 的line element合并为一个line element
+      
+      思路：
+      1. 标准：
+         以literal:return开头， 以literal:;结束的所有东西。
+         一
+         
+      但有个问题：在寻找sub的最后一句话时，仍然会有当前这个问题。 采用这个方法，那这个问题解决不了。
+      
+      
+***** TODO 找到sub的最后一句话。
+      - State "TODO"       from ""           [2016-05-29 Sun 14:57]
+      目前line element有问题，因此最后一句不是简单的最后一个line element in sub pair. 
+
+      我觉得还是将line element的解析搞对才是根本的解决方案。
+
+      方法：
+      一步一步处理： 先根据‘；'将源文件分为line element
+      然后，再进一步提取需要的line element， 比如，sub, return expression, last expression.
+      但问题的关键就是如何判断last expression？ 在sub的pair里倒推，
+      
+***** 更准确的line element parser
+      考虑 if block pair。
+      
+      line element 
+      1. 以;结尾，
+      2. 不以；结尾，仅限以下几种：
+        1. {}
+        2. sub .... {}
+        3. if .. {} elsif {} else {}
+        4. while ...{}
+        5. for ... {}
+        6. foreach .. {}
+           
+      实现：
+      1. 当前token为literal:if
+         则parse if line element
+      2. 为literal:while/for/foreach/unless 等
+         公用点为： 都是 keywork .* () .* {} ;?
+      3. 为literal:;, 则结束当前line element, 并且开始一个新的。
+      4. 为其它，则加入当前line element。
+
+      可分步实现：
+      1. match pair必须为第一步
+      2. match line
+      3. match 其它
+         
+      可能需要搞一个好的数据结构，因为现在需要经常替换树的几个child结点为一个结点，因此需要有一个公共的函数处理这个情况。
+      
+
       
 ** BUGs
 *** for perl
@@ -646,11 +702,15 @@
          return $a;};
 **** parse line element error
      below expression will be parsed as two line element.
-
+     
      $a->{name}->{type};
-
-     line element 不止之前分析的情况， 还应该包括以下：
-     1. hash的解析。 这种情况为：
-
-     只有一个{}的情况： 第一个元素为： 
-        
+     
+     line element 
+     1. 以;结尾，
+     2. 不以；结尾，仅限以下几种：
+        1. {}
+        2. sub .... {}
+        3. if .. {} elsif {} else {}
+        4. while ...{}
+        5. for ... {}
+        6. foreach .. {}
