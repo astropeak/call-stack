@@ -105,7 +105,7 @@ sub _token {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
-            push @token, {type=>'comment', value=>$t};
+            # push @token, {type=>'comment', value=>$t};
             next;
         }
 
