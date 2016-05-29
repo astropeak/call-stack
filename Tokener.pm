@@ -54,7 +54,7 @@ sub _token {
         $t=$fciter->get('sub\s+\w*\s*(\(.*\))?\s*');
         # dbgm $t;
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
@@ -66,7 +66,7 @@ sub _token {
         $t=$fciter->get('\n=[\d\D]*\n=cut.*');
         # dbgm $t;
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
@@ -75,9 +75,9 @@ sub _token {
         }
 
         # match a { or }
-        $t=$fciter->get('\(|\)|{|}|return|;');
+        $t=$fciter->get('\(|\)|{|}|(\b(return|if|elsif|else)\b)|;');
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
@@ -88,7 +88,8 @@ sub _token {
         # match a string
         $t=get_string($fciter);
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
+                # if ($current_other ne '') {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
@@ -99,7 +100,8 @@ sub _token {
         # match a comment
         $t=get_comment($fciter);
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
+                # if ($current_other ne '') {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
@@ -110,7 +112,8 @@ sub _token {
         # match a regexp
         $t=get_regexp($fciter);
         if ($t ne '') {
-            if ($current_other ne '') {
+            if ($current_other ne '' && (!($current_other =~ /^\s+$/))) {
+                # if ($current_other ne '') {
                 push @token, {type=>other, value=>$current_other};
                 $current_other='';
             }
