@@ -1,6 +1,8 @@
 package ASTerNew;
 use parent Aspk::Tree;
-# use Aspk::Debug;
+use Aspk::Debug;
+
+my %PAIR=('('=>')', '{'=>'}');
 
 sub new {
     my ($class, $token_iter)= @_;
@@ -28,9 +30,11 @@ sub build {
         $token = $token_iter->get();
         last unless defined $token;
 
-        if ($token->{value} eq '{') {
+        # dbgh %PAIR;
+        if (exists $PAIR{$token->{value}}) {
+            # print "HERE";
             # $token_iter->back();
-            my $pair=parse_pair($token_iter);
+            my $pair=parse_pair($token_iter, $token->{value});
             $self->add_child($pair);
         } else {
             $self->add_child(Aspk::Tree->new({data=>$token}));
@@ -46,7 +50,7 @@ sub build {
                              # parse_sub($node);
                              # parse_return_exp($node);
                              # }
-                             parse_line_element_simple($node);
+                             # parse_line_element_simple($node);
                      }});
 
 }
@@ -64,7 +68,7 @@ sub parse_return_exp_orig(){
 
         if ($token->{value} eq '{') {
             $token_iter->back();
-            my $pair=parse_pair($token_iter);
+            my $pair=parse_pair($token_iter, '{');
             $exp->add_child($pair);
         } elsif ($token->{value} eq ';') {
             $node->add_child(Aspk::Tree->new({data=>$token}));
@@ -78,18 +82,21 @@ sub parse_return_exp_orig(){
 
 sub parse_pair {
     my $token_iter=shift;
-    my $node = Aspk::Tree->new({data=>{type=>'pair',value=>''}});
+    my $left=shift;
+    my $table=\%PAIR;
+    my $right=$table->{$left};
+    my $node = Aspk::Tree->new({data=>{type=>'pair',value=>$left}});
     # my $token = $token_iter->get(); #this is literal '{'
     # $node->add_child(Aspk::Tree->new({data=>$token}));
     while (1) {
         $token = $token_iter->get();
         die "Error" if $token->{value} eq '';
 
-        if ($token->{value} eq '{') {
+        if (exists $table->{$token->{value}}) {
             # $token_iter->back();
-            my $pair=parse_pair($token_iter);
+            my $pair=parse_pair($token_iter, $token->{value});
             $node->add_child($pair);
-        } elsif ($token->{value} eq '}') {
+        } elsif ($token->{value} eq $right) {
             # $node->add_child(Aspk::Tree->new({data=>$token}));
             last;
         } else {

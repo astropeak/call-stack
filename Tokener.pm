@@ -75,7 +75,7 @@ sub _token {
         }
 
         # match a { or }
-        $t=$fciter->get('{|}|return|;');
+        $t=$fciter->get('\(|\)|{|}|return|;');
         if ($t ne '') {
             if ($current_other ne '') {
                 push @token, {type=>other, value=>$current_other};
