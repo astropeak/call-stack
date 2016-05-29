@@ -50,7 +50,7 @@ sub build {
                              # parse_sub($node);
                              # parse_return_exp($node);
                              # }
-                             # parse_line_element_simple($node);
+                             parse_line_element_simple($node);
                      }});
 
 }
@@ -139,14 +139,20 @@ sub parse_line_element_simple{
             $nn->add_child($children[$i]);
             push @dchildren, $nn;
             $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
-        } elsif ($children[$i]->prop(data)->{value} =~ /\bif\b/) {
+        } elsif ($children[$i]->prop(data)->{value} eq 'if') {
             # parse if-statement
-            if ($children[$i+1]->prop(data)->{type} eq 'pair') {
+            if ((($children[$i+1]->prop(data)->{type} eq 'pair') &&
+                 ($children[$i+1]->prop(data)->{value} eq '(')) &&
+                (($children[$i+2]->prop(data)->{type} eq 'pair') &&
+                 ($children[$i+2]->prop(data)->{value} eq '{')))
+            {
                 die "Child should be zero" if @{$nn->prop(children)} != 0;
                 my $ii = Aspk::Tree->new({data=>{type=>'if_statement'}, parent=>$nn});
                 my $iii = Aspk::Tree->new({data=>{type=>'if_part'}, parent=>$ii});
                 $iii->add_child($children[$i]);
                 $iii->add_child($children[$i+1]);
+                $iii->add_child($children[$i+2]);
+                ++$i;
                 ++$i;
 
                 # parse all elsif part
@@ -168,7 +174,21 @@ sub parse_line_element_simple{
                 $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
             } else {
                 # die "Should be pair";
+                # the after if statment
+                $nn->add_child($children[$i]);
             }
+        } elsif ($children[$i]->prop(data)->{type} eq 'subname') {
+            # parse sub
+            my $ii=Aspk::Tree->new({data=>{type=>'sub'}, parent=>$nn});
+            $ii->add_child($children[$i]);
+            if ($children[$i+1]->prop(data)->{type} eq 'pair' &&
+                $children[$i+1]->prop(data)->{value} eq '{') {
+                ++$i;
+                $ii->add_child($children[$i]);
+            }
+
+            push @dchildren, $nn;
+            $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
         } else {
             $nn->add_child($children[$i]);
         }
