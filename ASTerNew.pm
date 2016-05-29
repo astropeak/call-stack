@@ -136,13 +136,15 @@ sub parse_line_element_simple{
     my @dchildren;
     my $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
     my $child_iter = ArrayIter->new(@children);
+    my $d;
 
     while(my $child=$child_iter->get()) {
-        if ($child->prop(data)->{value} eq ';') {
+        $d = $child->prop(data);
+        if ($d->{value} eq ';') {
             $nn->add_child($child);
             push @dchildren, $nn;
             $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
-        } elsif ($child->prop(data)->{value} eq 'if') {
+        } elsif ($d->{value} eq 'if') {
             # parse if-statement
             if (@{$nn->prop(children)} == 0) {
                 $child_iter->back();
@@ -152,23 +154,26 @@ sub parse_line_element_simple{
                 push @dchildren, $nn;
                 $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
             } else {
+                # this is the post if statemetn
                 $nn->add_child($child);
             }
-            # TODO;
         }
-        # elsif ($child->prop(data)->{type} eq 'subname') {
-        #     # parse sub
-        #     my $ii=Aspk::Tree->new({data=>{type=>'sub'}, parent=>$nn});
-        #     $ii->add_child($child);
-        #     if ($children[$i+1]->prop(data)->{type} eq 'pair' &&
-        #         $children[$i+1]->prop(data)->{value} eq '{') {
-        #         ++$i;
-        #         $ii->add_child($child);
-        #     }
+        elsif ($d->{type} eq 'subname') {
+            # parse sub
+            my $ii=Aspk::Tree->new({data=>{type=>'sub'}, parent=>$nn});
+            $ii->add_child($child);
 
-        #     push @dchildren, $nn;
-        #     $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
-        # }
+            $child=$child_iter->get();
+            $d=$child->prop(data);
+            if ($d->{type} eq 'pair' && $d->{value} eq '{') {
+                $ii->add_child($child);
+            } else {
+                die "parse sub, expect pair {";
+            }
+
+            push @dchildren, $nn;
+            $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
+        }
         else {
             $nn->add_child($child);
         }
