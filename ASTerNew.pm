@@ -238,6 +238,7 @@ sub parse_if_statement {
         }
     }
 
+    # parse all else part
     $c= $ci->get();
     $d=$c->prop(data);
     if (($d->{type} eq 'literal') && ($d->{value} eq 'else')) {
@@ -255,47 +256,8 @@ sub parse_if_statement {
     }
 
     return $n;
-
-
-
-
-    # if ((($children[$i+1]->prop(data)->{type} eq 'pair') &&
-    #      ($children[$i+1]->prop(data)->{value} eq '(')) &&
-    #     (($children[$i+2]->prop(data)->{type} eq 'pair') &&
-    #      ($children[$i+2]->prop(data)->{value} eq '{')))
-    # {
-    #     die "Child should be zero" if @{$nn->prop(children)} != 0;
-    #     my $ii = Aspk::Tree->new({data=>{type=>'if_statement'}, parent=>$nn});
-    #     my $iii = Aspk::Tree->new({data=>{type=>'if_part'}, parent=>$ii});
-    #     $iii->add_child($child);
-    #     $iii->add_child($children[$i+1]);
-    #     $iii->add_child($children[$i+2]);
-    #     ++$i;
-    #     ++$i;
-
-    #     # parse all elsif part
-    #     my $flag=1;
-    #     while ($flag) {
-    #         if ($children[$i+1]->prop(data)->{value} =~ /\b(elsif|else)\b/) {
-    #             # die "AAAA";
-    #             my $iii = Aspk::Tree->new({data=>{type=>'else_part'}, parent=>$ii});
-    #             $iii->add_child($children[$i+1]);
-    #             $iii->add_child($children[$i+2]);
-    #             ++$i;
-    #             ++$i;
-    #         } else {
-    #             $flag=0;
-    #         }
-    #     }
-
-    #     push @dchildren, $nn;
-    #     $nn=Aspk::Tree->new({data=>{type=>'line_element'}});
-    # } else {
-    #     # die "Should be pair";
-    #     # the after if statment
-    #     $nn->add_child($child);
-    # }
 }
+
 # sub parse_if_statement{
 #     my $node = shift
 #         my @children = @{$node->prop(children)};
