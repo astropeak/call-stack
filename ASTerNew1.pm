@@ -411,7 +411,7 @@ foreach my $key (keys %SyntaxTable) {
     syntax_convert_data($SyntaxTable{$key});
 }
 
-# dbgm \%SyntaxTable;
+dbgm \%SyntaxTable;
 
 my @MatchSet=qw(if sub for);
 # my @MatchSet=qw(if);
@@ -441,6 +441,7 @@ sub build_ast {
 
 sub parse {
     my ($tk_iter, $id, $syntax)=@_;
+    my $ti_status = $tk_iter->dump();
     dbgm  $id, $syntax;
     # my @syntax=@{$SyntaxTable{$id}};
     # print $tk_iter->prop(idx)."\n";
@@ -464,11 +465,15 @@ sub parse {
                 # dbgm $st->{syntax};
                 $rst->add_child($t);
             } else {
+                $tk_iter->load($ti_status);
                 return undef;
             }
         } else {
             my $t=$tk_iter->get();
-            return undef unless $t;
+            unless ($t) {
+                $tk_iter->load($ti_status);
+                return undef;
+            }
 
             print "st: $st->{type}, $st->{value}\n";
             print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
@@ -478,7 +483,8 @@ sub parse {
                 print "AAAA, matched\n";
                 $rst->add_child($t);
             } else {
-                $tk_iter->back();
+                # $tk_iter->back();
+                $tk_iter->load($ti_status);
                 return undef;
             }
         }
@@ -504,6 +510,9 @@ sub syntax_convert_data {
         }
         if (not exists $_->{count}) {
             $_->{count} = [1,1];
+        }
+        if (not defined $_->{count}->[1]) {
+            $_->{count}->[1]=999999999;
         }
 
         # quoat the special char

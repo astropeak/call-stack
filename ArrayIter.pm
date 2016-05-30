@@ -18,6 +18,17 @@ sub get {
     return $self->prop(array)->[$i];
 }
 
+sub dump {
+    my ($self) = @_;
+    return $self->prop(idx);
+}
+
+sub load {
+    my ($self, $data) = @_;
+    $self->prop(idx, $data);
+    return $self;
+}
+
 sub back {
     my ($self, $count) = @_;
     $count||=1;
