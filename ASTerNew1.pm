@@ -54,7 +54,7 @@ sub build {
     }
 
     # dbgm $root;
-    $self->display();
+    # $self->display();
 
     # transform subname and pair to sub
     $root->traverse({prefunc=>
@@ -74,7 +74,7 @@ sub build {
 sub parse_line_element_1{
     my ($node) = @_;
     my $iter = ArrayIter->new(@{$node->prop(children)});
-    dbgm $iter;
+    # dbgm $iter;
     my @rst = build_ast($iter);
     $node->prop(children, \@rst);
 }
@@ -411,7 +411,7 @@ foreach my $key (keys %SyntaxTable) {
     syntax_convert_data($SyntaxTable{$key});
 }
 
-dbgm \%SyntaxTable;
+# dbgm \%SyntaxTable;
 
 my @MatchSet=qw(if sub for line_element);
 # my @MatchSet=qw(if);
@@ -442,7 +442,7 @@ sub build_ast {
 sub parse {
     my ($tk_iter, $id, $syntax)=@_;
     my $ti_status = $tk_iter->dump();
-    dbgm  $id, $syntax;
+    # dbgm  $id, $syntax;
     # my @syntax=@{$SyntaxTable{$id}};
     # print $tk_iter->prop(idx)."\n";
     my $rst = Element->new({type=>$id});
@@ -489,12 +489,12 @@ sub parse {
                     last;
                 }
 
-                print "st: $st->{type}, $st->{value}\n";
-                print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
+                # print "st: $st->{type}, $st->{value}\n";
+                # print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
 
                 if ($t->prop(type) =~ /^$st->{type}$/ &&
                     $t->prop(value) =~ /^$st->{value}$/) {
-                    print "AAAA, matched\n";
+                    # print "AAAA, matched\n";
                     $rst->add_child($t);
                     ++$ii;
                     $flag=1;
