@@ -460,11 +460,20 @@ sub parse {
             # print "token type: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(type) .
             #  ", value: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(value) ."\n";
 
-            my $t=parse($tk_iter,$st->{syntax}, $st1);
-            if ($t) {
-                # dbgm $st->{syntax};
-                $rst->add_child($t);
-            } else {
+            my $count=$st->{count};
+            my $ii=0;
+            my $t;
+            do {
+                $t=parse($tk_iter,$st->{syntax}, $st1);
+                if ($t) {
+                    # dbgm $st->{syntax};
+                    $rst->add_child($t);
+                    ++$ii;
+                }
+                # print "$ii\n";
+            } while ($t && $ii<$count->[1]);
+
+            unless ($ii <= $count->[1] && $ii>= $count->[0]) {
                 $tk_iter->load($ti_status);
                 return undef;
             }
