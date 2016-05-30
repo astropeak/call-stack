@@ -2,7 +2,7 @@ use Tokener;
 use ASTerNew1;
 use Aspk::Debug;
 
-my $tk = Tokener->new('test1.pl');
+my $tk = Tokener->new('test.pl');
 my $aster = ASTerNew1->new($tk);
 $aster->build();
 # Let print move clear

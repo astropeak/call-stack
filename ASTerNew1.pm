@@ -402,7 +402,7 @@ my %SyntaxTable=
             {syntax=>'_k{', para=>['else', 'literal'], count=>[0,1]}],
 
      'for'=>[{syntax=>'_k({',para=>'for'}],
-     'line_element'=>[{value=>'[^;]', count=>[0]},
+     'line_element'=>[{value=>'[^;]+', count=>[0]},
                       {type=>'literal',value=>';'}]
     );
 
@@ -413,7 +413,7 @@ foreach my $key (keys %SyntaxTable) {
 
 dbgm \%SyntaxTable;
 
-my @MatchSet=qw(if sub for);
+my @MatchSet=qw(if sub for line_element);
 # my @MatchSet=qw(if);
 sub build_ast {
     my ($tk_iter)=@_;
@@ -478,21 +478,33 @@ sub parse {
                 return undef;
             }
         } else {
-            my $t=$tk_iter->get();
-            unless ($t) {
-                $tk_iter->load($ti_status);
-                return undef;
-            }
+            my $count=$st->{count};
+            my $ii=0;
+            my $flag=0;
+            do {
+                my $t=$tk_iter->get();
+                unless ($t) {
+                    # $tk_iter->load($ti_status);
+                    # return undef;
+                    last;
+                }
 
-            print "st: $st->{type}, $st->{value}\n";
-            print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
+                print "st: $st->{type}, $st->{value}\n";
+                print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
 
-            if ($t->prop(type) =~ /^$st->{type}$/ &&
-                $t->prop(value) =~ /^$st->{value}$/) {
-                print "AAAA, matched\n";
-                $rst->add_child($t);
-            } else {
-                # $tk_iter->back();
+                if ($t->prop(type) =~ /^$st->{type}$/ &&
+                    $t->prop(value) =~ /^$st->{value}$/) {
+                    print "AAAA, matched\n";
+                    $rst->add_child($t);
+                    ++$ii;
+                    $flag=1;
+                } else {
+                    $flag=0;
+                    $tk_iter->back();
+                }
+            } while ($flag == 1 && $ii<$count->[1]);
+
+            unless ($ii <= $count->[1] && $ii>= $count->[0]) {
                 $tk_iter->load($ti_status);
                 return undef;
             }
