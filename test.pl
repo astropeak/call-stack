@@ -93,9 +93,9 @@ sub CC {
     elsif ($aaabbbcc) {
         $b->{'elsif'}->{type}
     }
-    elsif ($aaabbbcc) {
-        $b->{'elsif'}->{type}
-    }
+    # elsif ($aaabbbcc) {
+    #     $b->{'elsif'}->{type}
+    # }
     else {
         $b->{'else'}->{type}
     }

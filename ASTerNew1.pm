@@ -4,6 +4,7 @@ use Aspk::Debug;
 use ArrayIter;
 use Element;
 
+use Scalar::Util qw(reftype);
 my %PAIR=('('=>')', '{'=>'}');
 
 sub new {
@@ -52,8 +53,11 @@ sub build {
         }
     }
 
+    # dbgm $root;
+    $self->display();
+
     # transform subname and pair to sub
-    $root->traverse({postfunc=>
+    $root->traverse({prefunc=>
                          sub{
                              my $para = shift;
                              my $node = $para->{node};
@@ -70,6 +74,7 @@ sub build {
 sub parse_line_element_1{
     my ($node) = @_;
     my $iter = ArrayIter->new(@{$node->prop(children)});
+    dbgm $iter;
     my @rst = build_ast($iter);
     $node->prop(children, \@rst);
 }
@@ -379,30 +384,37 @@ sub parse_sub {
 
 
 
-my @MatchSet=qw(if sub for line_element);
 my %SyntaxTable=
-(
- '_k{'=>[{value=>'$1', type=>'$2'},
-         {type=>'pair',value=>'{'}],
+    (
+     '_k{'=>[{value=>'$1', type=>'$2'},
+             {type=>'pair',value=>'{'}],
 
- '_k({'=>[{value=>'$1'},
-          {type=>'pair',value=>'('},
-          {type=>'pair',value=>'{'}],
+     '_k({'=>[{value=>'$1'},
+              {type=>'pair',value=>'('},
+              {type=>'pair',value=>'{'}],
 
- # 'sub'=>[{syntax=>'_k{', para=>['', 'subname']}],
- 'sub'=>[{type=>'subname', value=>'.*'},
-         {type=>'pair', value=>'{'}],
+     # 'sub'=>[{syntax=>'_k{', para=>['', 'subname']}],
+     'sub'=>[{type=>'subname', value=>'.*'},
+             {type=>'pair', value=>'{'}],
 
- 'if'=>[{syntax=>'_k({', para=>'if'},
-        {syntax=>'_k({', para=>'elsif', count=>[0]},
-        {syntax=>'_k({', para=>'else', count=>[0,1]}],
+     'if'=>[{syntax=>'_k({', para=>'if'},
+            {syntax=>'_k({', para=>'elsif', count=>[0]},
+            {syntax=>'_k{', para=>['else', 'literal'], count=>[0,1]}],
 
- 'for'=>[{syntax=>'_k({',para=>'for'}],
- 'line_element'=>[{value=>'[^;]', count=>[0]},
-                  {type=>'literal',value=>';'}]
-);
+     'for'=>[{syntax=>'_k({',para=>'for'}],
+     'line_element'=>[{value=>'[^;]', count=>[0]},
+                      {type=>'literal',value=>';'}]
+    );
 
 
+foreach my $key (keys %SyntaxTable) {
+    syntax_convert_data($SyntaxTable{$key});
+}
+
+# dbgm \%SyntaxTable;
+
+my @MatchSet=qw(if sub for);
+# my @MatchSet=qw(if);
 sub build_ast {
     my ($tk_iter)=@_;
     my @rst;
@@ -410,14 +422,16 @@ sub build_ast {
         $tk_iter->back();
         my $t;
         foreach (@MatchSet) {
-            if ($t=parse($tk_iter, $_)) {
-                dbgm $_;
+            if ($t=parse($tk_iter, $_, $SyntaxTable{$_})) {
+                # dbgm $_;
+                # die "undefined " if not defined $t;
                 push @rst, $t;
                 last;
             }
         }
         # not matched in syntax table
-        unless ($t){
+        # dbgm $t;
+        unless (defined $t){
             push @rst, $tk_iter->get();
         }
     }
@@ -426,17 +440,28 @@ sub build_ast {
 }
 
 sub parse {
-    my ($tk_iter, $id)=@_;
-    my @syntax=@{$SyntaxTable{$id}};
-    # dbgm \@syntax;
+    my ($tk_iter, $id, $syntax)=@_;
+    dbgm  $id, $syntax;
+    # my @syntax=@{$SyntaxTable{$id}};
+    # print $tk_iter->prop(idx)."\n";
     my $rst = Element->new({type=>$id});
-    foreach (@syntax) {
-        if (exists $_->{syntax}) {
+    foreach my $st (@{$syntax}) {
+        if (exists $st->{syntax}) {
             # count and para not dealed.
             # dbgm $_->{syntax};
-            my $t=parse($tk_iter,$_->{syntax});
+            my $st1 = $SyntaxTable{$st->{syntax}};
+            # dbgm $st1;
+            $st1 = syntax_apply_para($st1, $st->{para});
+            # if ($st->{syntax} eq '_k({') {
+            # dbgm $st1;
+            # }
+
+            # print "token type: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(type) .
+            #  ", value: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(value) ."\n";
+
+            my $t=parse($tk_iter,$st->{syntax}, $st1);
             if ($t) {
-                dbgm $_->{syntax};
+                # dbgm $st->{syntax};
                 $rst->add_child($t);
             } else {
                 return undef;
@@ -444,8 +469,13 @@ sub parse {
         } else {
             my $t=$tk_iter->get();
             return undef unless $t;
-            if ($t->prop(type) =~ /^$_->{type}$/ &&
-                $t->prop(value) =~ /^$_->{value}$/) {
+
+            print "st: $st->{type}, $st->{value}\n";
+            print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
+
+            if ($t->prop(type) =~ /^$st->{type}$/ &&
+                $t->prop(value) =~ /^$st->{value}$/) {
+                print "AAAA, matched\n";
                 $rst->add_child($t);
             } else {
                 $tk_iter->back();
@@ -453,7 +483,58 @@ sub parse {
             }
         }
     }
+    # dbgm $rst;
     return $rst;
+}
+
+sub syntax_convert_data {
+    my ($syntax) = @_;
+    # dbgm $syntax;
+    foreach (@{$syntax}) {
+        # dbgm $_;
+        if ((exists $_->{para} ) && (reftype($_->{para}) ne 'ARRAY'))  {
+            $_->{para} = [$_->{para}];
+            # dbgm $_->{para};
+        }
+        if (not exists $_->{type}) {
+            $_->{type} = '.*';
+        }
+        if (not exists $_->{value}) {
+            $_->{value} = '.*';
+        }
+        if (not exists $_->{count}) {
+            $_->{count} = [1,1];
+        }
+
+        # quoat the special char
+        $_->{type} =~ s/\(/\\(/g;
+        $_->{type} =~ s/\{/\\{/g;
+        $_->{value} =~ s/\(/\\(/g;
+        $_->{value} =~ s/\{/\\{/g;
+        # dbgm $_;
+    }
+}
+
+sub syntax_apply_para{
+    my ($syntax, $para) = @_;
+    if (@{$para} >0) {
+        # dbgm $syntax;
+        # dbgm $para;
+    }
+    my @rst;
+    foreach my $st (@{$syntax}) {
+        my $t;
+        # dbgm $st;
+        foreach my $key (keys %{$st}) {
+            $t->{$key}=$st->{$key};
+            $t->{$key}=~s/\$1/$para->[0]/g;
+            $t->{$key}=~s/\$2/$para->[1]/g;
+        }
+        # dbgm $t;
+        push @rst, $t;
+    }
+    # $rst = $syntax;
+    return \@rst;
 }
 
 1;
