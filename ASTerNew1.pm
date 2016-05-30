@@ -1,30 +1,24 @@
 package ASTerNew1;
-use parent Aspk::Tree;
-# use Aspk::Debug;
+# use parent Aspk::Tree;
+use Aspk::Debug;
 use ArrayIter;
+use Element;
 
 my %PAIR=('('=>')', '{'=>'}');
 
 sub new {
     my ($class, $token_iter)= @_;
-    my $self;
-    $self = $class->SUPER::new();
-    # $self->prop(data, {tag=>$spec->{tag},
-    # prop=>$spec->{prop}});
+    my $self={};
+    bless $self, $class;
 
     $self->prop(token_iter, $token_iter);
-    $self->prop(data, {type=>'ROOT', value=>''});
-
-    bless $self, $class;
+    $self->prop(data, Element->new({type=>'ROOT', value=>''}));
     return $self;
 }
 
 # Get or set a property of the object
 sub prop {
     my ($self, $name, $value) = @_;
-    # print "In prop. name: $name, value: $value\n";
-    dbgl $name $value;
-
     if (defined($value)) {
         $self->{"_$name"} = $value;
         return $self;
@@ -33,10 +27,11 @@ sub prop {
     }
 }
 
-
 sub build {
     my ($self) = @_;
     my $token_iter = $self->prop(token_iter);
+    my $root = $self->prop(data);
+
     my $token, $current_root;
     # while (my $le = parse_line_element($token_iter)) {
     # $self->add_child($le);
@@ -51,14 +46,14 @@ sub build {
             # print "HERE";
             # $token_iter->back();
             my $pair=parse_pair($token_iter, $token->{value});
-            $self->add_child($pair);
+            $root->add_child($pair);
         } else {
-            $self->add_child(Aspk::Tree->new({data=>$token}));
+            $root->add_child(Element->new($token));
         }
     }
 
     # transform subname and pair to sub
-    $self->traverse({postfunc=>
+    $root->traverse({postfunc=>
                          sub{
                              my $para = shift;
                              my $node = $para->{node};
@@ -66,9 +61,17 @@ sub build {
                              # parse_sub($node);
                              # parse_return_exp($node);
                              # }
-                             parse_line_element_simple($node);
+                             # parse_line_element_simple($node);
+                             parse_line_element_1($node);
                      }});
 
+}
+
+sub parse_line_element_1{
+    my ($node) = @_;
+    my $iter = ArrayIter->new(@{$node->prop(children)});
+    my @rst = build_ast($iter);
+    $node->prop(children, \@rst);
 }
 
 sub parse_return_exp_orig(){
@@ -101,9 +104,7 @@ sub parse_pair {
     my $left=shift;
     my $table=\%PAIR;
     my $right=$table->{$left};
-    my $node = Aspk::Tree->new({data=>{type=>'pair',value=>$left}});
-    # my $token = $token_iter->get(); #this is literal '{'
-    # $node->add_child(Aspk::Tree->new({data=>$token}));
+    my $node = Element->new({type=>'pair',value=>$left});
     while (1) {
         $token = $token_iter->get();
         die "Error" if $token->{value} eq '';
@@ -113,10 +114,9 @@ sub parse_pair {
             my $pair=parse_pair($token_iter, $token->{value});
             $node->add_child($pair);
         } elsif ($token->{value} eq $right) {
-            # $node->add_child(Aspk::Tree->new({data=>$token}));
             last;
         } else {
-            $node->add_child(Aspk::Tree->new({data=>$token}));
+            $node->add_child(Element->new($token));
         }
     }
     return $node;
@@ -124,12 +124,13 @@ sub parse_pair {
 
 sub display {
     my ($self) = @_;
-    $self->traverse({prefunc=>
+    my $root=$self->prop(data);
+    $root->traverse({prefunc=>
                          sub{
                              my $para = shift;
-                             my $data = $para->{data};
+                             my $node = $para->{node};
                              my $depth = $para->{depth};
-                             print ' 'x($depth*4).'type: '.$data->{type}.', '.'value: '.$data->{value}."\n";
+                             print ' 'x($depth*4).'type: '.$node->prop(type).', '.'value: '.$node->prop(value)."\n";
                      }});
 }
 
@@ -374,6 +375,85 @@ sub parse_sub {
         }
     }
     $sle->prop(children, \@dchildren);
+}
+
+
+
+my @MatchSet=qw(if sub for line_element);
+my %SyntaxTable=
+(
+ '_k{'=>[{value=>'$1', type=>'$2'},
+         {type=>'pair',value=>'{'}],
+
+ '_k({'=>[{value=>'$1'},
+          {type=>'pair',value=>'('},
+          {type=>'pair',value=>'{'}],
+
+ # 'sub'=>[{syntax=>'_k{', para=>['', 'subname']}],
+ 'sub'=>[{type=>'subname', value=>'.*'},
+         {type=>'pair', value=>'{'}],
+
+ 'if'=>[{syntax=>'_k({', para=>'if'},
+        {syntax=>'_k({', para=>'elsif', count=>[0]},
+        {syntax=>'_k({', para=>'else', count=>[0,1]}],
+
+ 'for'=>[{syntax=>'_k({',para=>'for'}],
+ 'line_element'=>[{value=>'[^;]', count=>[0]},
+                  {type=>'literal',value=>';'}]
+);
+
+
+sub build_ast {
+    my ($tk_iter)=@_;
+    my @rst;
+    while ($tk_iter->get()) {
+        $tk_iter->back();
+        my $t;
+        foreach (@MatchSet) {
+            if ($t=parse($tk_iter, $_)) {
+                dbgm $_;
+                push @rst, $t;
+                last;
+            }
+        }
+        # not matched in syntax table
+        unless ($t){
+            push @rst, $tk_iter->get();
+        }
+    }
+    # dbgm \@rst;
+    return @rst;
+}
+
+sub parse {
+    my ($tk_iter, $id)=@_;
+    my @syntax=@{$SyntaxTable{$id}};
+    # dbgm \@syntax;
+    my $rst = Element->new({type=>$id});
+    foreach (@syntax) {
+        if (exists $_->{syntax}) {
+            # count and para not dealed.
+            # dbgm $_->{syntax};
+            my $t=parse($tk_iter,$_->{syntax});
+            if ($t) {
+                dbgm $_->{syntax};
+                $rst->add_child($t);
+            } else {
+                return undef;
+            }
+        } else {
+            my $t=$tk_iter->get();
+            return undef unless $t;
+            if ($t->prop(type) =~ /^$_->{type}$/ &&
+                $t->prop(value) =~ /^$_->{value}$/) {
+                $rst->add_child($t);
+            } else {
+                $tk_iter->back();
+                return undef;
+            }
+        }
+    }
+    return $rst;
 }
 
 1;

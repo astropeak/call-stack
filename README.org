@@ -662,7 +662,11 @@
       然后，再进一步提取需要的line element， 比如，sub, return expression, last expression.
       但问题的关键就是如何判断last expression？ 在sub的pair里倒推，
       
-***** 更准确的line element parser
+***** DONE 更准确的line element parser
+      CLOSED: [2016-05-30 Mon 10:37]
+      - State "DONE"       from "TODO"       [2016-05-30 Mon 10:37] \\
+        昨天晚上已经完成。
+      - State "TODO"       from ""           [2016-05-30 Mon 10:37]
       考虑 if block pair。
       
       line element 
@@ -691,7 +695,140 @@
       可能需要搞一个好的数据结构，因为现在需要经常替换树的几个child结点为一个结点，因此需要有一个公共的函数处理这个情况。
       
 
-      
+**** TODO 定义语法表
+     - State "TODO"       from ""           [2016-05-30 Mon 10:38]
+     在词法分析结果之上。
+     
+     定义：
+     语法表应该是一个hash
+     #+begin_src perl :results output
+     {
+         '_k{'=>[{value=>'$1', type=>'$2'},
+                 {type=>'pair',value=>'{'}],
+         
+         '_k({'=>[{value=>'$1'},
+                  {type=>'pair',value=>'('},
+                  {type=>'pair',value=>'{'}],
+         
+         'sub'=>[{syntax=>'_k{', para=>['', 'subname']}],
+         
+         'if'=>[{syntax=>'_k({', para=>'if'},
+                {syntax=>'_k({', para=>'elsif', count=>[0]},
+                {syntax=>'_k({', para=>'else', count=>[0,1]}],
+         
+         'for'=>[{syntax=>'_k({',para=>'for'}]
+     };
+     #+end_src
+     note:
+     1. key：标识一个语法规则，也做为匹配成功后的名称。以下划线开始，表示它不会被单独匹配，只是一个模块。
+     2. type, value: token的类型及值。二者不必同时存在，但至少存在一个。
+     3. count: 这个元素需要匹配的数目范围，如果不存在，则为[1,1]. if max ignored, then it is unlimmited，即[N] equals to [N, MAX_NUMBER].
+     4. syntax, 表示为另一个语法块。递归定义。当这个key存在时，type and value 将不会被check.
+     5. 接受参数的syntax块，参数用$N表示， $1表示第一个参数，$2 第二个，...
+     6. para: 调用另一个syntax块时，传入的参数，数组。数组元素为字符串。 如果只有一个参数，也可用scalar. 这个参数会依次先替换 $1， $2， 然后再进行匹配。
+        
+     以下'_if'的两种定义方式完全等价，只不过第一种对于多种类似的结构要少写些字。
+     #+begin_src perl :results output
+     {
+         '_k({'=>[{value=>'$1'},
+                  {type=>'pair',value=>'('},
+                  {type=>'pair',value=>'{'}],
+     
+         '_if'=>[{syntax=>'_k({', para=>'if'}]
+     };
+     
+     # equals to 
+     {
+         '_if'=>[{value=>'if'},
+                 {type=>'pair',value=>'('},
+                 {type=>'pair',value=>'{'}]
+     };
+     #+end_src
+     
+     输入及输出：
+     处理前后的数据结构完全相同，处理的过程，只是将几个元素合并为一个元素，或将一个元素拆分为几个元素的过程。
+     定义一下专用的数据结构较好。目前直接用Aspk::Tree虽然可以，但太麻烦了。
+     输入是一个array,输出也是一个array.只不过有些元素合并或拆分了。
+
+     实现：
+     1. 将给定token iterator转换为AST。
+        #+begin_src perl :results output
+        my %SyntaxTable=();
+        my @MatchSet=qw(if sub for);
+        
+        sub build_ast {
+            my ($tk_iter)=@_;
+            my @rst;
+            while ($tk_iter->get()) {
+                $tk_iter->back();
+                my $t;
+                foreach (@MatchSet) {
+                    if ($t=parse($tk_iter, $_)) {
+                        push @rst, $t;
+                        last;
+                    }
+                }
+                # not matched in syntax table
+                unless ($t){
+                    push @rst, $tk_iter->get();
+                }
+            }
+        
+            return @rst;
+        }
+        
+        sub parse {
+            my ($tk_iter, $id)=@_;
+            my @syntax=@{$SyntaxTable{$id}};
+            my $rst = Aspk::Tree({data=>{type=>$id}});
+            foreach (@syntax) {
+                if (exists $_->{syntax}) {
+                    # count and para not dealed.
+                    my $t=parse($tk_iter,$_->{syntax});
+                    if ($t) {
+                        $rst->add_child($t);
+                    } else {
+                        return undef;
+                    }
+                } else {
+                    my $t=$tk_iter->get();
+                    return undef unless $t;
+                    if ($t->{type} eq $_->{type} &&
+                        $t->{value} eq $_->{value}) {
+                        $rst->add_child($t);
+                    } else {
+                        $tk_iter->back();
+                        return undef;
+                    }
+                }
+            }
+            return $rst;
+        }
+        #+end_src
+
+     2. DONE 定义 Element 结构。
+        继承自Tree, 保存type, value等数据。
+        #+begin_src perl :results output
+        package Element
+        use parent Aspk::Tree;
+        use Aspk::Debug;
+        
+        sub new {
+            my ($class, $spec)= @_;
+            my $self;
+            $self = $class->SUPER::new($spec);
+        
+            $self->prop(type, $spec->{type});
+            $self->prop(value, $spec->{value});
+        
+            bless $self, $class;
+            return $self;
+        }
+        
+        1;
+        #+end_src
+
+        
 ** BUGs
 *** for perl
 **** below sub will not be parsed as sub
