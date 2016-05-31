@@ -67,7 +67,31 @@ sub build {
                              # }
                              # parse_line_element_simple($node);
                              parse_line_element_1($node);
+
                      }});
+
+    # transform post if
+    # dbgm "BBBBBB";
+    $root->traverse({prefunc=>
+                         sub{
+                             my $para = shift;
+                             my $node = $para->{node};
+                             if ($node->prop(type) eq 'line_element') {
+                                 my @cc = transform_post_if(@{$node->prop(children)});
+                                 # dbgh \@cc;
+                                 # $node->prop(children, \@cc);
+
+                                 $node->prop(children, []);
+                                 foreach (@cc) {
+                                     $node->add_child($_);
+                                 }
+
+                             }
+                             # $node->prop(children, \@cc);
+                     }});
+
+
+
 
 }
 
@@ -172,7 +196,14 @@ sub build_ast {
 sub parse {
     my ($tk_iter, $id, $syntax)=@_;
     my $ti_status = $tk_iter->dump();
-    # dbgm  $id, $syntax;
+
+    dbgm  $id, $syntax;
+
+    # my $ttttt = $tk_iter->get();
+    # return undef if not defined $ttttt;
+    # dbgm $ttttt;
+    # $tk_iter->back();
+
     # my @syntax=@{$SyntaxTable{$id}};
     # print $tk_iter->prop(idx)."\n";
     my $rst = Element->new({type=>$id});
@@ -188,9 +219,10 @@ sub parse {
             # }
 
             # print "token type: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(type) .
-            #  ", value: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(value) ."\n";
+            # ", value: ". $tk_iter->prop(array)->[$tk_iter->prop(idx)]->prop(value) ."\n";
 
             my $count=$st->{count};
+            dbgm $count;
             my $ii=0;
             my $t;
             do {
@@ -200,47 +232,60 @@ sub parse {
                     $rst->add_child($t);
                     ++$ii;
                 }
-                # print "$ii\n";
+                dbgm "BBBB";
+                dbgm $ii;
             } while ($t && $ii<$count->[1]);
 
             unless ($ii <= $count->[1] && $ii>= $count->[0]) {
                 $tk_iter->load($ti_status);
+                dbgm "return";
                 return undef;
             }
         } else {
             my $count=$st->{count};
+            dbgm $count;
             my $ii=0;
             my $flag=0;
             do {
                 my $t=$tk_iter->get();
-                unless ($t) {
-                    # $tk_iter->load($ti_status);
-                    # return undef;
-                    last;
-                }
+                # unless ($t) {
+                #     # $tk_iter->load($ti_status);
+                #     # return undef;
+                #     last;
+                # } 
 
-                # print "st: $st->{type}, $st->{value}\n";
-                # print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
+                if (defined $t) {
+                    # print "st: $st->{type}, $st->{value}\n";
+                    # print "t: ".$t->prop(type).", ".$t->prop(value).", index:".$tk_iter->prop(idx)."\n";
 
-                if ($t->prop(type) =~ /^$st->{type}$/ &&
-                    $t->prop(value) =~ /^$st->{value}$/) {
-                    # print "AAAA, matched\n";
-                    $rst->add_child($t);
-                    ++$ii;
-                    $flag=1;
+                    if ($t->prop(type) =~ /^$st->{type}$/ &&
+                        $t->prop(value) =~ /^$st->{value}$/) {
+                        # print "AAAA, matched\n";
+                        $rst->add_child($t);
+                        ++$ii;
+                        $flag=1;
+                    } else {
+                        $flag=0;
+                        $tk_iter->back();
+                    }
                 } else {
                     $flag=0;
-                    $tk_iter->back();
                 }
+
+                dbgm "AAAA";
+                dbgm $ii;
             } while ($flag == 1 && $ii<$count->[1]);
 
             unless ($ii <= $count->[1] && $ii>= $count->[0]) {
                 $tk_iter->load($ti_status);
+
+                dbgm "return2";
                 return undef;
             }
         }
     }
     # dbgm $rst;
+    dbgm "return3";
     return $rst;
 }
 
@@ -295,6 +340,71 @@ sub syntax_apply_para{
     }
     # $rst = $syntax;
     return \@rst;
+}
+
+sub transform_post_if {
+    # my ($iter) = @_;
+    my $iter = ArrayIter->new(@_);
+    # if (@_[2].prop(value) eq 'if') {
+    # dbgm \@_;
+    # }
+    my @a;
+    my $b;
+    my @c;
+    # dbgh $b;
+    while (my $t=$iter->get()){
+        # dbgm $t;
+        # $t->D();
+        if ($t->prop(type) eq 'literal' &&
+            $t->prop(value) eq 'if') {
+            $b = $t;
+            if (@a == 0) {
+                return @_;
+            }
+        } else {
+            if ($b) {
+                push @c, $t;
+            } else {
+                push @a, $t;
+            }
+        }
+    }
+    # dbgh $b;
+    if ($b) {
+        # 2.
+        my $t=pop @c;
+        # dbgm $t;
+        unless ($t->prop(type) eq 'literal' &&
+                $t->prop(value) eq ';') {
+            push @c, $t;
+        }
+
+        my $p1 = Element->new({type=>'pair',value=>'('});
+        foreach (@c) {
+            $p1->add_child($_);
+        }
+        my $p2 = Element->new({type=>'pair',value=>'{'});
+        foreach (@a) {
+            $p2->add_child($_);
+        }
+        my $parent= $b->prop(parent);
+        $b->prop(parent, '');
+        my @rst=($b, $p1, $p2);
+
+        # dbgm \@rst;
+
+        # 3.
+        # my $r = parse(ArrayIter->new(@rst), 'if', $SyntaxTable{'if'});
+        my @r = build_ast(ArrayIter->new(@rst));
+        # print "EEEEEEEEE";
+        # dbgm $r;
+        # die "Should not be undef" unless $r;
+        return @r;
+        # return @rst;
+    } else {
+        return @_;
+    }
+
 }
 
 1;

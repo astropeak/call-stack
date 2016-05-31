@@ -695,7 +695,11 @@
       可能需要搞一个好的数据结构，因为现在需要经常替换树的几个child结点为一个结点，因此需要有一个公共的函数处理这个情况。
       
 
-**** TODO 定义语法表
+**** DONE 定义并实现语法表
+     CLOSED: [2016-05-31 Tue 09:37]
+     - State "DONE"       from "TODO"       [2016-05-31 Tue 09:37] \\
+       没有先想好怎么编，结果浪费了很多时间找问题，总算最终完成了。
+       下次一定要先想好怎么编，这个相当于总体的思路，指导。代码编写完成后，再找问题，很容易陷入细节中。
      - State "TODO"       from ""           [2016-05-30 Mon 10:38]
      在词法分析结果之上。
      
@@ -828,6 +832,75 @@
         1;
         #+end_src
 
+**** TODO transform post if statement
+     - State "TODO"       from ""           [2016-05-31 Tue 09:41]
+     问题定义：
+     将 ~$a='AAA' if not defined $a;~
+     转换为 ~if (not defined $a) {$a='AAA';}~
+
+     作用对象： 一个line element的所有子结点。且中途有一个literal:if的结点。
+
+     输入：一个line element的所有子结点，数组或迭代器。
+     输出：转换后的line element的所有子结点，数组。
+
+     方法：
+     1. 对所有结点迭代：
+        1. 当前结点为literal:if，记录这个结点为 $b， 如果@a为空，则返回输入。
+        2. 为其它，且$b不为undef，则将它push到@c; 否则，push到@a。
+     2. 组合：
+        去除@c最后一个元素，如果这个元素是literal:;
+
+        @rst=$b + pair:( + pair:{
+        
+        其中pair:(的内容为@c， pair:{的内容为@a.
+     3. 解析@rst
+        @rst = parse(ArrayIter->new(@rst), 'if', $SyntaxTable{'if'});
+        如果返回值为undefed, 则die.
+
+     代码：
+     #+begin_src perl :results output
+     sub transform_post_if {
+         my ($iter) = @_;
+         my @a, $b, @c;
+         while (my $t=$iter->get()){
+             if ($t->prop(type) eq 'literal' &&
+                 $t->prop(value) eq 'if') {
+                 $b = $t;
+                 if (@a == 0) {
+                     return undef;
+                 }
+             } else {
+                 if ($b) {
+                     push @c, $t;
+                 } else {
+                     push @a, $t;
+                 }
+             }
+         }
+     
+         # 2.
+         my $t=pop @c;
+         unless ($t->prop(type) eq 'literal' &&
+             $t->prop(value) eq ';') {
+             push @c, $t;
+         }
+     
+         my $p1 = Element->new({type=>'pair',value=>'('});
+         $p1->prop(children, \@c);
+         my $p2 = Element->new({type=>'pair',value=>'{'});
+         $p2->prop(children, \@a);
+         my @rst=($b, $p1, $p2);
+     
+         # 3.
+         my $r = parse(ArrayIter->new(@rst), 'if', $SyntaxTable{'if'});
+         die "Should not be undef" unless $r;
+     
+         return ($r);
+     }
+     #+end_src
+
+     调试：
+     以上代码，生成的if中的parent 关系有点混乱。从而导致错误。
         
 ** BUGs
 *** for perl

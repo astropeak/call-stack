@@ -14,4 +14,9 @@ sub new {
     return $self;
 }
 
+sub D {
+    my ($self)=@_;
+    print "Element info: type: ".$self->prop(type).", value: ".$self->prop(value).", child count: ".@{$self->prop(children)}."\n";
+}
+
 1;
