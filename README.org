@@ -832,7 +832,14 @@
         1;
         #+end_src
 
-**** TODO transform post if statement
+**** DONE transform post if statement
+     CLOSED: [2016-05-31 Tue 15:56]
+     - State "DONE"       from "TODO"       [2016-05-31 Tue 15:56]
+       遇到的问题： 
+       1. ~my $a, $b, $c~ 和预想的不一样， 其等价于 ~my $a;$b,$c~
+       2. ~last~ in ~do {} while~ 不起作用，他将会作用在外层loop.
+       3. 由于以上两个反人类行为，花了很多时间才解决。
+
      - State "TODO"       from ""           [2016-05-31 Tue 09:41]
      问题定义：
      将 ~$a='AAA' if not defined $a;~
