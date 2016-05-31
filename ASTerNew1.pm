@@ -379,6 +379,9 @@ sub transform_post_if {
             push @c, $t;
         }
 
+        push @a, Element->new({type=>'literal',value=>';'});
+        my @a = build_ast(ArrayIter->new(@a));
+
         my $p1 = Element->new({type=>'pair',value=>'('});
         foreach (@c) {
             $p1->add_child($_);
